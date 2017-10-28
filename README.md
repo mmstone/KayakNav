@@ -1,6 +1,8 @@
 # KayakNav
-Kayak Navigation Production Code
-Kayak Navigation System Description, Design, Development, and Testing related files and information.
+ROGER:  Real-time Onboard GPS Enabled Rowing
+
+Kayak Navigation System Production Code
+ROGER Kayak Navigation System Description, Design, Development, and Testing related files and information.
 
 KayakNav subsystems are named in honor of Roger Keeney (founder of A.I.R.S., a 501(c)3 non-profit), 
 who initially conceived of the idea for the development of a system to enable the visually disabled to compete
