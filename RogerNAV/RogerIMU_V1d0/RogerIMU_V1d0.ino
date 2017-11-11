@@ -29,6 +29,7 @@ Adafruit_FXOS8700 accelmag  = Adafruit_FXOS8700(0x8700A, 0x8700B);
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 //
+boolean trace = true;
 int comCount = 0;
 float heading = 0;
 float roll    = 0;
@@ -41,17 +42,17 @@ float qHead   = 0;
 // These values must be determined for each baord/environment.
 // See the image in this sketch folder for the values used
 // below.
-
+//
 // Offsets applied to raw x/y/z mag values
 float mag_offsets[3]            = { 18.90F, 5.48F, 110.70F };
-
+//
 // Soft iron error compensation matrix
 float mag_softiron_matrix[3][3] = { {  1.002,  -0.007,  -0.005 },
                                     { -0.007,   0.989,   0.007 },
                                     { -0.005,   0.007,   1.010 } };
-
+//
 float mag_field_strength        = 48.25F;
-
+//
 // Offsets applied to compensate for gyro zero-drift error for x/y/z
 // Raw values converted to rad/s based on 250dps sensitiviy (1 lsb = 0.00875 rad/s)
 float rawToDPS = 0.00875F;
@@ -200,13 +201,19 @@ void updateIMUData() {
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 void initIMUSensors() {
-  Serial.println(F("Adafruit AHRS Fusion Example")); Serial.println("");
+  if (trace) {
+    Serial.println(F("Adafruit AHRS Fusion Example")); Serial.println("");
+    }
   if(!gyro.begin()) {                                                     // Initialize the sensors.
-    Serial.println("Ooops, no gyro detected ... Check your wiring!");    /* There was a problem detecting the gyro ... check your connections */
+    if (trace) {
+      Serial.println("Ooops, no gyro detected ... Check your wiring!");    /* There was a problem detecting the gyro ... check your connections */
+      }
     while(1);
     }
   if(!accelmag.begin(ACCEL_RANGE_4G)) {
-    Serial.println("Ooops, no FXOS8700 detected ... Check your wiring!");
+    if (trace) {
+      Serial.println("Ooops, no FXOS8700 detected ... Check your wiring!");
+      }
     while(1);
     }
   // Filter expects 70 samples per second
@@ -226,10 +233,14 @@ void configIOPins() {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 void configSerial() {
+  trace = false;
   delay(500);
-  Serial.begin(115200);
+  if (trace) {
+    Serial.begin(115200);
+    delay(500);
+    Serial.println("Starting IMU");
+    }
   digitalWrite(13, LOW);
-  delay(500);
   Serial1.begin(9600);
   delay(500);
 }
@@ -242,7 +253,10 @@ void setup() {
   configIOPins();
   configSerial();
   initIMUSensors();
-}
+  if (trace) {
+    Serial.print(" Ready! ");
+    delay(500);
+    }}
 //
 //
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -253,11 +267,13 @@ void loop(void) {
     computeEuler();
     computeQuat();
     digitalWrite(13, HIGH);
-    showHeadingRollPitch();
+    if (trace) {
+      showHeadingRollPitch();
+      }
     sendHeadingRollPitch();
     comCount = 0;
     }
-  delay(10);
+  delay(5);
   digitalWrite(13, LOW);
 }
 //
