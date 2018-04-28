@@ -161,6 +161,24 @@ String inputString     = "";           // a string to hold incoming heading data
 //
 //
 Keypad cmdKeyPad = Keypad(makeKeymap(keys), rowPins, colPins, ROWS, COLS);
+
+enum Mode {
+  MANUAL_REC,
+  AUTO_REC,
+  PLAYBACK,
+  NONE
+};
+
+enum PlaybackStep {
+  SELECT_FILE,
+  IN_PROGRESS,
+  COMPLETE
+};
+
+Mode currMode = NONE;
+String numpadEntry = "";
+PlaybackStep currPlaybackStep = SELECT_FILE;
+
 //
 //
 //
@@ -349,13 +367,13 @@ void sdCardInit() {
   }
   Serial.print("Writing to "); 
   Serial.println(filename);
-  readSDTripData();
+  writeSDTripData();
 }
 //
 //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
-void readSDTripData() {
+void writeSDTripData() {
   tripFile.print("Sequence:");      tripFile.print(",Time:");          
   tripFile.print(",Date:");         tripFile.print(",Fix:");          
   tripFile.print(",Quality:");      tripFile.print(",Latitude:");     
@@ -899,13 +917,67 @@ void computeTripInfo() {
 //
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
+
+void setMode(Mode mode) {
+  if (currMode == NONE) {
+    currMode = mode;
+  }
+  else {
+    // Need to exit existing mode before setting new
+  }
+}
+
+void processNumInput(char num) {
+  if (currMode == PLAYBACK) {
+    if (currPlaybackStep == SELECT_FILE) {
+      
+    }
+  }
+}
+
 void chkForCMDInput() {
   keyPadInput = cmdKeyPad.getKey();
-//  
+//
   if (keyPadInput){
     if (trace) {
       Serial.println(keyPadInput);
       }
+    switch (keyPadInput) {
+      case '0':
+      case '1':
+      case '2':
+      case '3':
+      case '4':
+      case '5':
+      case '6':
+      case '7':
+      case '8':
+      case '9':
+        processNumInput(keyPadInput);
+        break;
+      case 'A':
+        // For entering manual record mode
+        setMode(MANUAL_REC);
+        break;
+      case 'B':
+        // For entering auto record mode
+        setMode(AUTO_REC);
+        break;
+      case 'C':
+        // For entering playback mode
+        setMode(PLAYBACK);
+        break;
+      case 'D':
+        // For exiting current mode
+        currMode = NONE;
+        break;
+      case '*':
+        break;
+      case '#':
+        // For confirming actions
+        
+        break;
+    }
   }
 }
 //
@@ -1108,19 +1180,19 @@ void setup() {
   configSerialPorts();               // initialize serial:
   configIOPins();                    // configure the IO pins      
   inputString.reserve(BUFSIZE);      // reserve 256 bytes for the inputString:
-  checkForRTC();                     // Check for an RTC
+  //checkForRTC();                     // Check for an RTC
   delay(250);
   sdCardInit();                      // initialize the SD card
   delay(250);
   chkBLE();                          // start the Bluetooth LE interface
   delay(250);
-  chkHapticDrv();
+  //chkHapticDrv();
   if (trace) {
     Serial.println("Ready!"); 
     delay(250);
     }
 //  trace = false; 
-  configRogerCMD();                    
+  //configRogerCMD();                    
 }
 //
 //
