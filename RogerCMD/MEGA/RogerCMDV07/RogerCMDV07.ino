@@ -983,13 +983,14 @@ void loadWaypointsFromFile() {
       Waypoint waypoint = parseWaypoint(line);
       waypoint.seqNum = seqNum++;
       wayPointQueue.enqueue(waypoint);
-      
+
       Serial.print("Waypoint ");
       Serial.print(waypoint.seqNum);
       Serial.print(": ");
       Serial.print(waypoint.gpsLatDeg, 6);
       Serial.print(",");
       Serial.println(waypoint.gpsLonDeg, 6);
+      line = "";
     }
     
   }
@@ -1003,19 +1004,29 @@ void loadWaypointsFromFile() {
 }
 
 Waypoint parseWaypoint(String str) {
-  Waypoint waypoint;
-  int seqNum = 0;
-
+  Waypoint waypoint = {seqNum:0, time:0, gpsLatDeg:0.0, gpsLonDeg:0.0};
   int startInd = 0;
   int delimInd = str.indexOf(',');
   String part = str.substring(startInd, delimInd);
   // part 1 longitude
   waypoint.gpsLatDeg = part.toFloat();
+  Serial.print("part1: ");
+  Serial.println(part);
+  Serial.println(part.toFloat(), 6);
+  char temp[9];
+  part.toCharArray(temp, part.length()+1);
+  float v = atof(temp);
+  Serial.println(v, 6);
+  Serial.println(waypoint.gpsLatDeg, 6);
 
   startInd = delimInd + 1;
   part = str.substring(startInd);
   // part 2 latitude
   waypoint.gpsLonDeg = part.toFloat();
+  Serial.print("part2: ");
+  Serial.println(part);
+  Serial.println(part.toFloat(), 6);
+  Serial.println(waypoint.gpsLonDeg, 6);
 
   return waypoint;
 }
@@ -1069,8 +1080,10 @@ void recordWaypoint() {
 void autoRecordWaypoint() {
   uint32_t currTime = millis();
   if ((currTime - timer) >= AUTO_RECORD_INT_MS) {
-    // timer elapsed, record waypoint
-    recordWaypoint();
+    // timer elapsed, record waypoint if in auto record mode
+    if (currMode == AUTO_REC) {
+      recordWaypoint();
+    }
     timer = currTime;
   }
 }
