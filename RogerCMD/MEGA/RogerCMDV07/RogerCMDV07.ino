@@ -45,6 +45,7 @@ extern "C" {
 #define BUFSIZE                 255          // Size of the read buffer for incoming data
 #define tcaADDR                 0x70         // Address of TCA MUX
 #define sysLED                  13           // Onboard SYSTEM LED and Piezo Buzzer
+#define AUTO_RECORD_INT_MS      10000        // 10 sec
 //
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -379,7 +380,7 @@ void sdCardInit() {
   }
   Serial.print("Writing to ");
   Serial.println(filename);
-  writeSDTripData();
+  //writeSDTripData();
 }
 //
 //
@@ -890,13 +891,6 @@ void getRTCData() {
 //
 void provideHapticFeedback() {
 
-
-
-
-
-
-
-
 }
 //
 //
@@ -917,13 +911,10 @@ void getRogerNAVData() {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 void computeTripInfo() {
+  if ((currMode == PLAYBACK) && (currPlaybackStep == IN_PROGRESS)) {
+    Waypoint nextWaypoint = wayPointQueue.peek();
 
-
-
-
-
-
-
+  }
 }
 //
 //
@@ -933,9 +924,12 @@ void computeTripInfo() {
 void setMode(Mode mode) {
   if (currMode == NONE) {
     currMode = mode;
+    Serial.print("Mode set to ");
+    Serial.println(mode);
   }
   else {
     // Need to exit existing mode before setting new
+    Serial.println("Error, exit current mode before setting new mode");
   }
 }
 
@@ -944,9 +938,12 @@ void processNumInput(char num) {
     if (currPlaybackStep == SELECT_FILE) {
       if (numpadEntry.length() < 2) {
         numpadEntry += num;
+        Serial.print("numpadEntry = ");
+        Serial.println(numpadEntry);
       }
       else {
         // max valid entry is 99, error
+        Serial.println("Error, max valid entry is 99");
       }
     }
   }
@@ -965,8 +962,11 @@ void confirmAction() {
       }
     }
     else {
-
+      // invalid entry
     }
+  }
+  else if ((currMode == PLAYBACK) && (currPlaybackStep == WAYPOINTS_LOADED)) {
+    currPlaybackStep = IN_PROGRESS;
   }
 }
 
@@ -976,12 +976,15 @@ void loadWaypointsFromFile() {
 
   while (playbackFile.available()) {
     char c = playbackFile.read();
+    Serial.print(c);
+    /*
     line += c;
     if (c == '\n') {
       Waypoint waypoint = parseWaypoint(line);
       waypoint.seqNum = seqNum++;
       wayPointQueue.enqueue(waypoint);
     }
+    */
   }
   playbackFile.close();
 
@@ -1027,6 +1030,76 @@ bool loadFileForPlayback() {
   return true;
 }
 
+void recordWaypoint() {
+  if ((currMode == MANUAL_REC) || (currMode == AUTO_REC)) {
+    uint32_t currTime = millis();
+    uint32_t elapsedTime = 0;
+    String bleResp = "";
+    // Get GPS coordinates from NAV server
+    bleCentral.println("o");
+    do {
+      while (bleCentral.available()) {
+        bleResp += (char)bleCentral.read();
+      }
+      elapsedTime = millis() - currTime;
+    } while (elapsedTime < 200); // Wait for 200ms max
+
+    float latDeg = 0.0;
+    float lonDeg = 0.0;
+    String parsedCoord = parseGPSString(bleResp, &latDeg, &lonDeg);
+    tripFile.println(parsedCoord);
+    tripFile.flush();
+    Serial.print("Waypoint: ");
+    Serial.println(parsedCoord);
+    Serial.println("Waypoint saved");
+  }
+  else {
+    Serial.println("Error, not in recording mode");
+  }
+}
+
+void autoRecordWaypoint() {
+  uint32_t currTime = millis();
+  if ((currTime - timer) >= AUTO_RECORD_INT_MS) {
+    // timer elapsed, record waypoint
+    recordWaypoint();
+    timer = currTime;
+  }
+}
+
+String parseGPSString(String gpsStr, float *latDeg, float *lonDeg) {
+  int firstInd = gpsStr.indexOf('=');
+  int lastInd = gpsStr.lastIndexOf('=');
+  
+  if (firstInd < lastInd) {
+    // Valid, expect format DD.DDDDDD
+    String lat = "";
+    String lon = "";
+    int startInd = firstInd + 2;
+
+    while(lat.length() < 9) {
+      char c = gpsStr.charAt(startInd++);
+      if (isDigit(c) || c == '.') {
+        lat += c;
+      }
+    }
+
+    startInd = lastInd + 2;
+    while(lon.length() < 9) {
+      char c = gpsStr.charAt(startInd++);
+      if (isDigit(c) || c == '.') {
+        lon += c;
+      }
+    }
+
+    *latDeg = lat.toFloat();
+    *lonDeg = lon.toFloat();
+    return lat + "," + lon;
+  }
+
+  return "";
+}
+
 void chkForCMDInput() {
   keyPadInput = cmdKeyPad.getKey();
 //
@@ -1062,8 +1135,11 @@ void chkForCMDInput() {
       case 'D':
         // For exiting current mode
         currMode = NONE;
+        Serial.println("Mode reset");
         break;
       case '*':
+        // For manually recording waypoints
+        recordWaypoint();
         break;
       case '#':
         // For confirming actions
@@ -1104,17 +1180,6 @@ void kbdVRUHapticCheck() {
 //
 void configRogerCMD() {
   kbdVRUHapticCheck();
-
-
-
-
-
-
-
-
-
-
-
 }
 //
 //
@@ -1296,6 +1361,7 @@ void loop() {
 //  testCellCom();
   chkForCMDInput();
   getRogerNAVData();
+  autoRecordWaypoint();
   computeTripInfo();
   provideHapticFeedback();
   sendVoiceResponse();
