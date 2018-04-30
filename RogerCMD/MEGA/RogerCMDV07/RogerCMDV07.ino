@@ -977,19 +977,28 @@ void loadWaypointsFromFile() {
   while (playbackFile.available()) {
     char c = playbackFile.read();
     Serial.print(c);
-    /*
+    
     line += c;
     if (c == '\n') {
       Waypoint waypoint = parseWaypoint(line);
       waypoint.seqNum = seqNum++;
       wayPointQueue.enqueue(waypoint);
+      
+      Serial.print("Waypoint ");
+      Serial.print(waypoint.seqNum);
+      Serial.print(": ");
+      Serial.print(waypoint.gpsLatDeg, 6);
+      Serial.print(",");
+      Serial.println(waypoint.gpsLonDeg, 6);
     }
-    */
+    
   }
   playbackFile.close();
 
   if (wayPointQueue.count() > 0) {
     currPlaybackStep = WAYPOINTS_LOADED;
+    Serial.print("# waypoints: ");
+    Serial.println(wayPointQueue.count());
   }
 }
 
@@ -1001,13 +1010,12 @@ Waypoint parseWaypoint(String str) {
   int delimInd = str.indexOf(',');
   String part = str.substring(startInd, delimInd);
   // part 1 longitude
-  waypoint.gpsLonDeg = part.toFloat();
+  waypoint.gpsLatDeg = part.toFloat();
 
   startInd = delimInd + 1;
-  delimInd = str.indexOf(',', startInd);
-  part = str.substring(startInd, delimInd);
+  part = str.substring(startInd);
   // part 2 latitude
-  waypoint.gpsLatDeg = part.toFloat();
+  waypoint.gpsLonDeg = part.toFloat();
 
   return waypoint;
 }
@@ -1054,7 +1062,7 @@ void recordWaypoint() {
     Serial.println("Waypoint saved");
   }
   else {
-    Serial.println("Error, not in recording mode");
+    //Serial.println("Error, not in recording mode");
   }
 }
 
@@ -1079,7 +1087,7 @@ String parseGPSString(String gpsStr, float *latDeg, float *lonDeg) {
 
     while(lat.length() < 9) {
       char c = gpsStr.charAt(startInd++);
-      if (isDigit(c) || c == '.') {
+      if (isDigit(c) || c == '.' || c == '-') {
         lat += c;
       }
     }
@@ -1087,7 +1095,7 @@ String parseGPSString(String gpsStr, float *latDeg, float *lonDeg) {
     startInd = lastInd + 2;
     while(lon.length() < 9) {
       char c = gpsStr.charAt(startInd++);
-      if (isDigit(c) || c == '.') {
+      if (isDigit(c) || c == '.' || c == '-') {
         lon += c;
       }
     }
