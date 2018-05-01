@@ -15,6 +15,7 @@ with his goal to be the first blind person to solo kayak from Europe to Asia (or
 Offered Completely Open Source and License Free.  
 Absolutely no liability, guarantee, or warranty expressed or implied for the use or misuse of this software.
 Users assume all responsibility.  Subject to change without notice.  Batteries not included.  Your mileage may vary.
-Some code by Martin Stone, amateur Maker, tinkerer, and old, grumpy geek. 
+Overall hardware design/build and some code by Martin Stone, amateur Maker, tinkerer, and old, grumpy geek.  Other (more important) code is being provided by Shaoda (James) Yu, who is providing his time, knowledge, and expertise through the Houston IoT Foundry.    
+
 Gratitude to Adafruit and their staff for their products, hardware, software, and support without whom the development
 of this system would not be possible.  
