@@ -45,7 +45,8 @@ extern "C" {
 #define BUFSIZE                 255          // Size of the read buffer for incoming data
 #define tcaADDR                 0x70         // Address of TCA MUX
 #define sysLED                  13           // Onboard SYSTEM LED and Piezo Buzzer
-#define AUTO_RECORD_INT_MS      10000        // 10 sec
+#define AUTO_RECORD_INT_MS      10000        // 10 sec interval for auto record waypoint
+#define PLAYBACK_INT_MS         3000         // 3 sec interval for computing course during playback
 //
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -912,8 +913,30 @@ void getRogerNAVData() {
 //
 void computeTripInfo() {
   if ((currMode == PLAYBACK) && (currPlaybackStep == IN_PROGRESS)) {
-    Waypoint nextWaypoint = wayPointQueue.peek();
+    uint32_t currTime = millis();
+    
+    if ((currTime - timer) >= PLAYBACK_INT_MS) {
+      timer = currTime;
+      // Get next waypoint
+      Waypoint nextWaypoint = wayPointQueue.peek();
+      // Get current location
+      uint32_t currTime2 = millis();
+      uint32_t elapsedTime = 0;
+      String bleResp = "";
+      bleCentral.println("o");
+      do {
+        while (bleCentral.available()) {
+          bleResp += (char)bleCentral.read();
+        }
+        elapsedTime = millis() - currTime2;
+      } while (elapsedTime < 200); // Wait for 200ms max
 
+      float latDeg = 0.0;
+      float lonDeg = 0.0;
+      String parsedCoord = parseGPSString(bleResp, &latDeg, &lonDeg);
+
+      
+    }
   }
 }
 //
@@ -976,7 +999,7 @@ void loadWaypointsFromFile() {
 
   while (playbackFile.available()) {
     char c = playbackFile.read();
-    Serial.print(c);
+    //Serial.print(c);
     
     line += c;
     if (c == '\n') {
@@ -1010,23 +1033,11 @@ Waypoint parseWaypoint(String str) {
   String part = str.substring(startInd, delimInd);
   // part 1 longitude
   waypoint.gpsLatDeg = part.toFloat();
-  Serial.print("part1: ");
-  Serial.println(part);
-  Serial.println(part.toFloat(), 6);
-  char temp[9];
-  part.toCharArray(temp, part.length()+1);
-  float v = atof(temp);
-  Serial.println(v, 6);
-  Serial.println(waypoint.gpsLatDeg, 6);
 
   startInd = delimInd + 1;
   part = str.substring(startInd);
   // part 2 latitude
   waypoint.gpsLonDeg = part.toFloat();
-  Serial.print("part2: ");
-  Serial.println(part);
-  Serial.println(part.toFloat(), 6);
-  Serial.println(waypoint.gpsLonDeg, 6);
 
   return waypoint;
 }
@@ -1098,7 +1109,8 @@ String parseGPSString(String gpsStr, float *latDeg, float *lonDeg) {
     String lon = "";
     int startInd = firstInd + 2;
 
-    while(lat.length() < 9) {
+    int len = (gpsStr.charAt(startInd) == '-') ? 10 : 9;
+    while(lat.length() < len) {
       char c = gpsStr.charAt(startInd++);
       if (isDigit(c) || c == '.' || c == '-') {
         lat += c;
@@ -1106,7 +1118,8 @@ String parseGPSString(String gpsStr, float *latDeg, float *lonDeg) {
     }
 
     startInd = lastInd + 2;
-    while(lon.length() < 9) {
+    len = (gpsStr.charAt(startInd) == '-') ? 10 : 9;
+    while(lon.length() < len) {
       char c = gpsStr.charAt(startInd++);
       if (isDigit(c) || c == '.' || c == '-') {
         lon += c;
@@ -1156,6 +1169,8 @@ void chkForCMDInput() {
       case 'D':
         // For exiting current mode
         currMode = NONE;
+        currPlaybackStep = SELECT_FILE;
+        numpadEntry = "";
         Serial.println("Mode reset");
         break;
       case '*':
