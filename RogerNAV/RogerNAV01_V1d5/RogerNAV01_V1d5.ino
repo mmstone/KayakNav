@@ -762,8 +762,10 @@ void checkForCMDDataReq() {
         break;
       // if the incoming character is a newline, set a flag
       // so the main loop can do something about it:
+      case '\r':
       case '\n':
         stringComplete = true;
+        bleSerial.flush();
         break;
       default:
         bleSerial.println("CMD ERROR" );
