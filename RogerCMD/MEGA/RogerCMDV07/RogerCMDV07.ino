@@ -158,9 +158,11 @@ boolean buzzRight         = false;
 boolean buzzLeft          = false;
 boolean cellReq           = false;
 boolean trace             = true;
+boolean logPlayback       = true;
 //
 //
 char daysOfTheWeek[7][12] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
+char filename[15] = "CMDT0000.TXT";
 //
 String inputString     = "";           // a string to hold incoming heading data.  Space is allocated in the setup function
 //
@@ -370,9 +372,11 @@ void sdCardInit() {
   if (!SD.begin(cardSelect)) {
     Serial.println("Card init. failed!");
     error(2);
-    }
-  char filename[15];
-  strcpy(filename, "CMDT0000.TXT");
+  }
+  //writeSDTripData();
+}
+
+void sdCardOpenNext() {
   for (uint8_t i = 0; i < 100; i++) {
     filename[6] = '0' + i/10;
     filename[7] = '0' + i%10;
@@ -390,7 +394,6 @@ void sdCardInit() {
   }
   Serial.print("Writing to ");
   Serial.println(filename);
-  //writeSDTripData();
 }
 //
 //
@@ -954,6 +957,10 @@ void computeTripInfo() {
       float latDeg = 0.0;
       float lonDeg = 0.0;
       String parsedCoord = parseGPSString(bleResp, &latDeg, &lonDeg);
+      if (parsedCoord.length() == 0) {
+        // Error, skip calculations
+        return;
+      }
 
       float distToWaypoint = dist_between(latDeg, lonDeg, nextWaypoint.gpsLatDeg, nextWaypoint.gpsLonDeg);
       Serial.print("Distance to next waypoint: ");
@@ -1151,9 +1158,11 @@ void setMode(Mode mode) {
     switch (currMode) {
       case MANUAL_REC:
         Serial.println("Manual record");
+        sdCardOpenNext();
         break;
       case AUTO_REC:
         Serial.println("Auto record");
+        sdCardOpenNext();
         timer = millis() - 10000;
         break;
       case PLAYBACK:
@@ -1386,10 +1395,9 @@ void chkForCMDInput() {
         break;
       case 'D':
         // For exiting current mode
-
         // If recording, close files and cleanup
         if ((currMode == MANUAL_REC) || (currMode == AUTO_REC)) {
-          
+          tripFile.close();
         }
         
         currMode = NONE;
