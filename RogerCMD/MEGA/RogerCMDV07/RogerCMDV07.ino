@@ -982,6 +982,7 @@ void computeTripInfo() {
       // Check if waypoint reached
       if (distToWaypoint <= 6.0) {
         wayPointQueue.dequeue();
+        Serial.println("Waypoint reached.");
         // Check if playback complete
         if (wayPointQueue.isEmpty()) {
           currPlaybackStep = COMPLETE;
@@ -1023,9 +1024,46 @@ void computeUserAction(float dist, float heading, float currHeading) {
     }
   }
   Serial.print("Off course by: ");
-  Serial.print(absHeadingDiff, 2);
-  Serial.print(", turn ");
-  switch (turnDirection) {
+  Serial.println(absHeadingDiff, 2);
+
+  // How far off course they are
+  if (absHeadingDiff <= 5.0) {
+    // Minor error
+    Serial.println("Keep straight");
+  }
+  else if (absHeadingDiff <= 10.0) {
+    // Needs course adjustment
+    makeTurn(turnDirection);
+  }
+  else if (absHeadingDiff <= 20.0) {
+    // Needs course adjustment
+    makeTurn(turnDirection);
+  }
+  else if (absHeadingDiff <= 30.0) {
+    // Needs course adjustment
+    makeTurn(turnDirection);
+  }
+  else if (absHeadingDiff <= 60.0) {
+    // Off course
+    makeTurn(turnDirection);
+  }
+  else if (absHeadingDiff <= 90.0) {
+    // Far off course
+    makeTurn(turnDirection);
+  }
+  else if (absHeadingDiff <= 120.0) {
+    // Pretty far off course
+    makeTurn(turnDirection);
+  }
+  else if (absHeadingDiff <= 150.0) {
+    // Way off course
+    makeTurn(turnDirection);
+  }
+}
+
+void makeTurn(Direction dir) {
+  Serial.print("Turn ");
+  switch (dir) {
     case LEFT:
       Serial.println("left");
       break;
@@ -1036,32 +1074,6 @@ void computeUserAction(float dist, float heading, float currHeading) {
       break;
     case BACK:
       break;
-  }
-
-  // How far off course they are
-  if (absHeadingDiff <= 5.0) {
-    // Minor error
-  }
-  else if (absHeadingDiff <= 10.0) {
-    // Needs course adjustment
-  }
-  else if (absHeadingDiff <= 20.0) {
-    // Needs course adjustment
-  }
-  else if (absHeadingDiff <= 30.0) {
-    // Needs course adjustment
-  }
-  else if (absHeadingDiff <= 60.0) {
-    // Off course
-  }
-  else if (absHeadingDiff <= 90.0) {
-    // Far off course
-  }
-  else if (absHeadingDiff <= 120.0) {
-    // Pretty far off course
-  }
-  else if (absHeadingDiff <= 150.0) {
-    // Way off course
   }
 }
 
@@ -1374,6 +1386,12 @@ void chkForCMDInput() {
         break;
       case 'D':
         // For exiting current mode
+
+        // If recording, close files and cleanup
+        if ((currMode == MANUAL_REC) || (currMode == AUTO_REC)) {
+          
+        }
+        
         currMode = NONE;
         currPlaybackStep = SELECT_FILE;
         numpadEntry = "";
