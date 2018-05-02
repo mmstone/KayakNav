@@ -1023,7 +1023,7 @@ void computeUserAction(float dist, float heading, float currHeading) {
     }
   }
   Serial.print("Off course by: ");
-  Serial.print(absHeadingDiff);
+  Serial.print(absHeadingDiff, 2);
   Serial.print(", turn ");
   switch (turnDirection) {
     case LEFT:
@@ -1142,6 +1142,7 @@ void setMode(Mode mode) {
         break;
       case AUTO_REC:
         Serial.println("Auto record");
+        timer = millis() - 10000;
         break;
       case PLAYBACK:
         Serial.println("Playback");
@@ -1277,11 +1278,16 @@ void recordWaypoint() {
     float latDeg = 0.0;
     float lonDeg = 0.0;
     String parsedCoord = parseGPSString(bleResp, &latDeg, &lonDeg);
-    tripFile.println(parsedCoord);
-    tripFile.flush();
-    Serial.print("Waypoint: ");
-    Serial.println(parsedCoord);
-    Serial.println("Waypoint saved");
+    if (parsedCoord.length() > 0) {
+      tripFile.println(parsedCoord);
+      tripFile.flush();
+      Serial.print("Waypoint: ");
+      Serial.println(parsedCoord);
+      Serial.println("Waypoint saved");
+    }
+    else {
+      Serial.println("Error, empty waypoint");
+    }
   }
   else {
     //Serial.println("Error, not in recording mode");
