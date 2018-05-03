@@ -1066,6 +1066,9 @@ void computeUserAction(float dist, float heading, float currHeading) {
     // Way off course
     makeTurn(turnDirection);
   }
+  else {
+    makeTurn(turnDirection);
+  }
 }
 
 void makeTurn(Direction dir) {
