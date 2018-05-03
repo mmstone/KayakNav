@@ -937,7 +937,7 @@ void checkTripComplete() {
 void computeTripInfo() {
   if ((currMode == PLAYBACK) && (currPlaybackStep == IN_PROGRESS) && (!wayPointQueue.isEmpty())) {
     uint32_t currTime = millis();
-    
+
     if ((currTime - timer) >= PLAYBACK_INT_MS) {
       timer = currTime;
       // Get next waypoint
@@ -957,7 +957,7 @@ void computeTripInfo() {
       float latDeg = 0.0;
       float lonDeg = 0.0;
       String parsedCoord = parseGPSString(bleResp, &latDeg, &lonDeg);
-      if (parsedCoord.length() == 0) {
+      if ((parsedCoord.length() == 0) || (latDeg == 0.0 && lonDeg == 0.0)) {
         // Error, skip calculations
         return;
       }
@@ -1007,9 +1007,9 @@ void computeTripInfo() {
 void computeUserAction(float dist, float heading, float currHeading) {
   Direction turnDirection = FRONT;
   // Get difference between heading
-  int headingDiff = heading - currHeading;
-  int absHeadingDiff = abs(headingDiff);
-  
+  float headingDiff = heading - currHeading;
+  float absHeadingDiff = abs(headingDiff);
+
   if (headingDiff > 0.0) {
     if (absHeadingDiff < 180.0) {
       // turn right
@@ -1101,10 +1101,10 @@ float parseHeading(String str)
   return headingStr.toFloat();
 }
 
-float dist_between(float lat1, float long1, float lat2, float long2) 
+float dist_between(float lat1, float long1, float lat2, float long2)
 {
-  // returns distance in meters between two positions, both specified 
-  // as signed decimal-degrees latitude and longitude. Uses great-circle 
+  // returns distance in meters between two positions, both specified
+  // as signed decimal-degrees latitude and longitude. Uses great-circle
   // distance computation for hypothetical sphere of radius 6372795 meters.
   // Because Earth is no exact sphere, rounding errors may be up to 0.5%.
   // Courtesy of Maarten Lamers
@@ -1117,17 +1117,17 @@ float dist_between(float lat1, float long1, float lat2, float long2)
   float clat1 = cos(lat1);
   float slat2 = sin(lat2);
   float clat2 = cos(lat2);
-  delta = (clat1 * slat2) - (slat1 * clat2 * cdlong); 
-  delta = sq(delta); 
-  delta += sq(clat2 * sdlong); 
-  delta = sqrt(delta); 
-  float denom = (slat1 * slat2) + (clat1 * clat2 * cdlong); 
-  delta = atan2(delta, denom); 
-  return delta * 6372795; 
+  delta = (clat1 * slat2) - (slat1 * clat2 * cdlong);
+  delta = sq(delta);
+  delta += sq(clat2 * sdlong);
+  delta = sqrt(delta);
+  float denom = (slat1 * slat2) + (clat1 * clat2 * cdlong);
+  delta = atan2(delta, denom);
+  return delta * 6372795;
 }
 
 
-float course_to(float lat1, float long1, float lat2, float long2) 
+float course_to(float lat1, float long1, float lat2, float long2)
 {
   // returns course in degrees (North=0, West=270) from position 1 to position 2,
   // both specified as signed decimal-degrees latitude and longitude.
@@ -1222,7 +1222,7 @@ void loadWaypointsFromFile() {
   while (playbackFile.available()) {
     char c = playbackFile.read();
     //Serial.print(c);
-    
+
     line += c;
     if (c == '\n') {
       Waypoint waypoint = parseWaypoint(line);
@@ -1237,7 +1237,7 @@ void loadWaypointsFromFile() {
       Serial.println(waypoint.gpsLonDeg, 6);
       line = "";
     }
-    
+
   }
   playbackFile.close();
 
@@ -1299,7 +1299,7 @@ void recordWaypoint() {
     float latDeg = 0.0;
     float lonDeg = 0.0;
     String parsedCoord = parseGPSString(bleResp, &latDeg, &lonDeg);
-    if (parsedCoord.length() > 0) {
+    if ((parsedCoord.length() > 0) || !(latDeg == 0.0 && lonDeg == 0.0)) {
       tripFile.println(parsedCoord);
       tripFile.flush();
       Serial.print("Waypoint: ");
@@ -1329,7 +1329,7 @@ void autoRecordWaypoint() {
 String parseGPSString(String gpsStr, float *latDeg, float *lonDeg) {
   int firstInd = gpsStr.indexOf('=');
   int lastInd = gpsStr.lastIndexOf('=');
-  
+
   if (firstInd < lastInd) {
     // Valid, expect format DD.DDDDDD
     String lat = "";
@@ -1399,7 +1399,7 @@ void chkForCMDInput() {
         if ((currMode == MANUAL_REC) || (currMode == AUTO_REC)) {
           tripFile.close();
         }
-        
+
         currMode = NONE;
         currPlaybackStep = SELECT_FILE;
         numpadEntry = "";
