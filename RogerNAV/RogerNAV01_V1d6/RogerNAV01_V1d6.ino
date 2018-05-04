@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
-//  RogerNAV001_V1d5
+//  RogerNAV001_V1d6
 //
 //  Basic navigational sensors and systems integrated into a data recording and navigational server platform
 //  which can be accessed via simple commands via a Bluetooth LE interface.  Navigational sensors include:
@@ -267,14 +267,15 @@ void parseGPSData() {
 //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
-void storeNAVData() {
+void parseAndStoreNAVData() {
   if (timer > millis()) {
     timer = millis();                      // if millis() or timer wraps around, we'll just reset it
     }
   getHeadingInfo();
-  if ((millis() - timer) > 900) {          // approximately every 1 second or so, store/print out the current dasta
+  parseGPSData();                          // Parse GPS data
+  if ((millis() - timer) > 1000) {         // approximately every 1 second or so, get and store/print out the current dasta
     timer = millis();                      // reset the timer
-    loadGPSData();
+    loadGPSData();                         // Load GPS data
     if (gpsFix) {
       digitalWrite(gpsLock, HIGH);
       refreshRTC();
@@ -287,7 +288,7 @@ void storeNAVData() {
       digitalWrite(sysLED, LOW);
     } else {
       digitalWrite(gpsLock, LOW);
-      //sounder(100);   
+      sounder(100);   
     }
   }
 }
@@ -1143,8 +1144,7 @@ void setup() {
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 void loop() {
-  parseGPSData();                        // get and parse the GPS data
-  storeNAVData();                        // store the navigational data on the SD card and update voliatle memory
+  parseAndStoreNAVData();                // parse and store the navigational data on the SD card and update voliatle memory
   if (bleSerial.available()) {
     digitalWrite(bleXfer, LOW);
     checkForCMDDataReq();                // check for and respond to BLE inteface/serial port for data commands/requests
@@ -1157,3 +1157,4 @@ void loop() {
 //
 //
 //
+

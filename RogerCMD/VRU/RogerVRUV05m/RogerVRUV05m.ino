@@ -41,7 +41,7 @@ boolean trace          = false;
 //
 //
 uint8_t vruSDVocNum    = 0;     // number of vru voice files on the SD card, incremented as read in printDirectory function
-uint8_t vruAppVocNum   = 187;   // relative to zero there should be 188 voice files on the SD card for this version of this sketch
+uint8_t vruAppVocNum   = 189;   // relative to zero there should be 190 voice files on the SD card for this version of this sketch
 //
 //
 Adafruit_VS1053_FilePlayer musicPlayer = 

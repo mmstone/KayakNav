@@ -47,6 +47,8 @@ extern "C" {
 #define sysLED                  13           // Onboard SYSTEM LED and Piezo Buzzer
 #define AUTO_RECORD_INT_MS      10000        // 10 sec interval for auto record waypoint
 #define PLAYBACK_INT_MS         3000         // 3 sec interval for computing course during playback
+#define BLE_WAIT_MS             250          // Time to wait for BLE response n ms
+#define TRIP_COMPLETE_INT_MS    10000        // 10 sec interval to let user know trip is complete
 //
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -156,9 +158,11 @@ boolean buzzRight         = false;
 boolean buzzLeft          = false;
 boolean cellReq           = false;
 boolean trace             = true;
+boolean logPlayback       = true;
 //
 //
 char daysOfTheWeek[7][12] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
+char filename[15] = "CMDT0000.TXT";
 //
 String inputString     = "";           // a string to hold incoming heading data.  Space is allocated in the setup function
 //
@@ -179,6 +183,13 @@ enum PlaybackStep {
   WAYPOINTS_LOADED,
   IN_PROGRESS,
   COMPLETE
+};
+
+enum Direction {
+  LEFT,
+  RIGHT,
+  FRONT,
+  BACK
 };
 
 typedef struct waypoint {
@@ -361,9 +372,11 @@ void sdCardInit() {
   if (!SD.begin(cardSelect)) {
     Serial.println("Card init. failed!");
     error(2);
-    }
-  char filename[15];
-  strcpy(filename, "CMDT0000.TXT");
+  }
+  //writeSDTripData();
+}
+
+void sdCardOpenNext() {
   for (uint8_t i = 0; i < 100; i++) {
     filename[6] = '0' + i/10;
     filename[7] = '0' + i%10;
@@ -381,7 +394,6 @@ void sdCardInit() {
   }
   Serial.print("Writing to ");
   Serial.println(filename);
-  //writeSDTripData();
 }
 //
 //
@@ -911,10 +923,21 @@ void getRogerNAVData() {
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
-void computeTripInfo() {
-  if ((currMode == PLAYBACK) && (currPlaybackStep == IN_PROGRESS)) {
+void checkTripComplete() {
+  if ((currMode == PLAYBACK) && (currPlaybackStep == COMPLETE)) {
+    // Let user know trip is complete
     uint32_t currTime = millis();
-    
+    if ((currTime - timer) >= TRIP_COMPLETE_INT_MS) {
+      timer = currTime;
+      Serial.println("Trip complete!");
+    }
+  }
+}
+
+void computeTripInfo() {
+  if ((currMode == PLAYBACK) && (currPlaybackStep == IN_PROGRESS) && (!wayPointQueue.isEmpty())) {
+    uint32_t currTime = millis();
+
     if ((currTime - timer) >= PLAYBACK_INT_MS) {
       timer = currTime;
       // Get next waypoint
@@ -929,15 +952,202 @@ void computeTripInfo() {
           bleResp += (char)bleCentral.read();
         }
         elapsedTime = millis() - currTime2;
-      } while (elapsedTime < 200); // Wait for 200ms max
+      } while (elapsedTime < BLE_WAIT_MS); // Wait for 200ms max
 
       float latDeg = 0.0;
       float lonDeg = 0.0;
       String parsedCoord = parseGPSString(bleResp, &latDeg, &lonDeg);
+      if ((parsedCoord.length() == 0) || (latDeg == 0.0 && lonDeg == 0.0)) {
+        // Error, skip calculations
+        return;
+      }
 
-      
+      float distToWaypoint = dist_between(latDeg, lonDeg, nextWaypoint.gpsLatDeg, nextWaypoint.gpsLonDeg);
+      Serial.print("Distance to next waypoint: ");
+      Serial.println(distToWaypoint);
+
+      float courseHeading = course_to(latDeg, lonDeg, nextWaypoint.gpsLatDeg, nextWaypoint.gpsLonDeg);
+      Serial.print("Course heading: ");
+      Serial.println(courseHeading);
+
+      // Get current heading
+      currTime2 = millis();
+      elapsedTime = 0;
+      bleResp = "";
+      bleCentral.println("h");
+      do {
+        while (bleCentral.available()) {
+          bleResp += (char)bleCentral.read();
+        }
+        elapsedTime = millis() - currTime2;
+      } while (elapsedTime < BLE_WAIT_MS); // Wait for 200ms max
+
+      float currHeading = parseHeading(bleResp);
+      Serial.print("Heading: ");
+      Serial.println(currHeading);
+
+      // Check if waypoint reached
+      if (distToWaypoint <= 6.0) {
+        wayPointQueue.dequeue();
+        Serial.println("Waypoint reached.");
+        // Check if playback complete
+        if (wayPointQueue.isEmpty()) {
+          currPlaybackStep = COMPLETE;
+          Serial.println("Trip complete!");
+          return;
+        }
+      }
+
+      // Tell user what to do based on nav info
+      computeUserAction(distToWaypoint, courseHeading, currHeading);
     }
   }
+}
+
+void computeUserAction(float dist, float heading, float currHeading) {
+  Direction turnDirection = FRONT;
+  // Get difference between heading
+  float headingDiff = heading - currHeading;
+  float absHeadingDiff = abs(headingDiff);
+
+  if (headingDiff > 0.0) {
+    if (absHeadingDiff < 180.0) {
+      // turn right
+      turnDirection = RIGHT;
+    }
+    else {
+      // turn left
+      turnDirection = LEFT;
+    }
+  }
+  else {
+    if (absHeadingDiff < 180.0) {
+      // turn left
+      turnDirection = LEFT;
+    }
+    else {
+      // turn right
+      turnDirection = RIGHT;
+    }
+  }
+  Serial.print("Off course by: ");
+  Serial.println(absHeadingDiff, 2);
+
+  // How far off course they are
+  if (absHeadingDiff <= 5.0) {
+    // Minor error
+    Serial.println("Keep straight");
+  }
+  else if (absHeadingDiff <= 10.0) {
+    // Needs course adjustment
+    makeTurn(turnDirection);
+  }
+  else if (absHeadingDiff <= 20.0) {
+    // Needs course adjustment
+    makeTurn(turnDirection);
+  }
+  else if (absHeadingDiff <= 30.0) {
+    // Needs course adjustment
+    makeTurn(turnDirection);
+  }
+  else if (absHeadingDiff <= 60.0) {
+    // Off course
+    makeTurn(turnDirection);
+  }
+  else if (absHeadingDiff <= 90.0) {
+    // Far off course
+    makeTurn(turnDirection);
+  }
+  else if (absHeadingDiff <= 120.0) {
+    // Pretty far off course
+    makeTurn(turnDirection);
+  }
+  else if (absHeadingDiff <= 150.0) {
+    // Way off course
+    makeTurn(turnDirection);
+  }
+  else {
+    makeTurn(turnDirection);
+  }
+}
+
+void makeTurn(Direction dir) {
+  Serial.print("Turn ");
+  switch (dir) {
+    case LEFT:
+      Serial.println("left");
+      break;
+    case RIGHT:
+      Serial.println("right");
+      break;
+    case FRONT:
+      break;
+    case BACK:
+      break;
+  }
+}
+
+float parseHeading(String str)
+{
+  int startInd = str.lastIndexOf('=') + 2;
+  int decimalInd = str.lastIndexOf('.');
+  int len = (decimalInd-startInd) + 3;
+  String headingStr = "";
+
+  while (headingStr.length() < len) {
+    char c = str.charAt(startInd++);
+    if (isDigit(c) || c == '.') {
+      headingStr += c;
+    }
+  }
+
+  return headingStr.toFloat();
+}
+
+float dist_between(float lat1, float long1, float lat2, float long2)
+{
+  // returns distance in meters between two positions, both specified
+  // as signed decimal-degrees latitude and longitude. Uses great-circle
+  // distance computation for hypothetical sphere of radius 6372795 meters.
+  // Because Earth is no exact sphere, rounding errors may be up to 0.5%.
+  // Courtesy of Maarten Lamers
+  float delta = radians(long1-long2);
+  float sdlong = sin(delta);
+  float cdlong = cos(delta);
+  lat1 = radians(lat1);
+  lat2 = radians(lat2);
+  float slat1 = sin(lat1);
+  float clat1 = cos(lat1);
+  float slat2 = sin(lat2);
+  float clat2 = cos(lat2);
+  delta = (clat1 * slat2) - (slat1 * clat2 * cdlong);
+  delta = sq(delta);
+  delta += sq(clat2 * sdlong);
+  delta = sqrt(delta);
+  float denom = (slat1 * slat2) + (clat1 * clat2 * cdlong);
+  delta = atan2(delta, denom);
+  return delta * 6372795;
+}
+
+
+float course_to(float lat1, float long1, float lat2, float long2)
+{
+  // returns course in degrees (North=0, West=270) from position 1 to position 2,
+  // both specified as signed decimal-degrees latitude and longitude.
+  // Because Earth is no exact sphere, calculated course may be off by a tiny fraction.
+  // Courtesy of Maarten Lamers
+  float dlon = radians(long2-long1);
+  lat1 = radians(lat1);
+  lat2 = radians(lat2);
+  float a1 = sin(dlon) * cos(lat2);
+  float a2 = sin(lat1) * cos(lat2) * cos(dlon);
+  a2 = cos(lat1) * sin(lat2) - a2;
+  a2 = atan2(a1, a2);
+  if (a2 < 0.0)
+  {
+    a2 += TWO_PI;
+  }
+  return degrees(a2);
 }
 //
 //
@@ -948,7 +1158,22 @@ void setMode(Mode mode) {
   if (currMode == NONE) {
     currMode = mode;
     Serial.print("Mode set to ");
-    Serial.println(mode);
+    switch (currMode) {
+      case MANUAL_REC:
+        Serial.println("Manual record");
+        sdCardOpenNext();
+        break;
+      case AUTO_REC:
+        Serial.println("Auto record");
+        sdCardOpenNext();
+        timer = millis() - 10000;
+        break;
+      case PLAYBACK:
+        Serial.println("Playback");
+        break;
+      case NONE:
+        break;
+    }
   }
   else {
     // Need to exit existing mode before setting new
@@ -1000,7 +1225,7 @@ void loadWaypointsFromFile() {
   while (playbackFile.available()) {
     char c = playbackFile.read();
     //Serial.print(c);
-    
+
     line += c;
     if (c == '\n') {
       Waypoint waypoint = parseWaypoint(line);
@@ -1015,7 +1240,7 @@ void loadWaypointsFromFile() {
       Serial.println(waypoint.gpsLonDeg, 6);
       line = "";
     }
-    
+
   }
   playbackFile.close();
 
@@ -1072,16 +1297,21 @@ void recordWaypoint() {
         bleResp += (char)bleCentral.read();
       }
       elapsedTime = millis() - currTime;
-    } while (elapsedTime < 200); // Wait for 200ms max
+    } while (elapsedTime < BLE_WAIT_MS); // Wait for 200ms max
 
     float latDeg = 0.0;
     float lonDeg = 0.0;
     String parsedCoord = parseGPSString(bleResp, &latDeg, &lonDeg);
-    tripFile.println(parsedCoord);
-    tripFile.flush();
-    Serial.print("Waypoint: ");
-    Serial.println(parsedCoord);
-    Serial.println("Waypoint saved");
+    if ((parsedCoord.length() > 0) || !(latDeg == 0.0 && lonDeg == 0.0)) {
+      tripFile.println(parsedCoord);
+      tripFile.flush();
+      Serial.print("Waypoint: ");
+      Serial.println(parsedCoord);
+      Serial.println("Waypoint saved");
+    }
+    else {
+      Serial.println("Error, empty waypoint");
+    }
   }
   else {
     //Serial.println("Error, not in recording mode");
@@ -1102,7 +1332,7 @@ void autoRecordWaypoint() {
 String parseGPSString(String gpsStr, float *latDeg, float *lonDeg) {
   int firstInd = gpsStr.indexOf('=');
   int lastInd = gpsStr.lastIndexOf('=');
-  
+
   if (firstInd < lastInd) {
     // Valid, expect format DD.DDDDDD
     String lat = "";
@@ -1168,6 +1398,11 @@ void chkForCMDInput() {
         break;
       case 'D':
         // For exiting current mode
+        // If recording, close files and cleanup
+        if ((currMode == MANUAL_REC) || (currMode == AUTO_REC)) {
+          tripFile.close();
+        }
+
         currMode = NONE;
         currPlaybackStep = SELECT_FILE;
         numpadEntry = "";
@@ -1399,6 +1634,7 @@ void loop() {
   getRogerNAVData();
   autoRecordWaypoint();
   computeTripInfo();
+  checkTripComplete();
   provideHapticFeedback();
   sendVoiceResponse();
 //
