@@ -297,6 +297,10 @@ void parseAndStoreNAVData() {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 void loadGPSData() {
+  uint8_t gfq = GPS.fixquality;                   //  set up an interger to store the GPS fix quality value
+  if (gfq == 0) {                                 //  check to see if the data quality value is equal to zero
+    return;                                       //  if so, then don't refresh the data in global storage and exit this routine       
+    }
   navHour = GPS.hour;
   navMinute = GPS.minute;
   navSeconds = GPS.seconds;
