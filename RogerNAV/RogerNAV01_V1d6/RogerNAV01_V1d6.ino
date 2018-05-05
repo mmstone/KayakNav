@@ -297,6 +297,10 @@ void parseAndStoreNAVData() {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 void loadGPSData() {
+  uint8_t gfq = GPS.fixquality;                   //  set up an interger to store the GPS fix quality value
+  if (gfq == 0) {                                 //  check to see if the data quality value is equal to zero
+    return;                                       //  if so, then don't refresh the data in global storage and exit this routine       
+    }
   navHour = GPS.hour;
   navMinute = GPS.minute;
   navSeconds = GPS.seconds;
@@ -558,14 +562,13 @@ void setNavName() {
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 void setBLEdBm(int dBm) {
-  if (!bleCMDMode)
-  {
+  if (!bleCMDMode) {
     bleCMDOn();
-  }
-  if (dBm != -40 || -20 || -16 || -12 ||
-      -8 ||  -4 ||   0 ||  4) {
-    dBm = 0;
-  }
+    }
+//  if (dBm != -40 || -20 || -16 || -12 ||
+//      -8 ||  -4 ||   0 ||  4) {
+    dBm = 4;
+//    }
   bleSerial.print("AT+BLEPOWERLEVEL=");
   bleSerial.print(dBm);
   ble.waitForOK();
@@ -1103,7 +1106,7 @@ void sounder(int period) {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 void configSerialPorts() {
-  trace = false;
+//  trace = false;
   delay(250);
   if (trace) {
     Serial.begin(115200);                                                // start the Serial trace port

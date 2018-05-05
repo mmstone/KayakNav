@@ -49,6 +49,7 @@ extern "C" {
 #define PLAYBACK_INT_MS         3000         // 3 sec interval for computing course during playback
 #define BLE_WAIT_MS             250          // Time to wait for BLE response n ms
 #define TRIP_COMPLETE_INT_MS    10000        // 10 sec interval to let user know trip is complete
+#define MODEM_INIT_WAIT         10000        // Time for modem to initialize
 //
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -159,6 +160,8 @@ boolean buzzLeft          = false;
 boolean cellReq           = false;
 boolean trace             = true;
 boolean logPlayback       = true;
+boolean modemReady        = false;
+boolean connectionGood    = false;
 //
 //
 char daysOfTheWeek[7][12] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
@@ -201,6 +204,8 @@ typedef struct waypoint {
 
 Mode currMode = NONE;
 String numpadEntry = "";
+String currentString = "";
+String modemResponse = "";
 PlaybackStep currPlaybackStep = SELECT_FILE;
 QueueArray<Waypoint> wayPointQueue;
 
@@ -987,7 +992,7 @@ void computeTripInfo() {
       Serial.println(currHeading);
 
       // Check if waypoint reached
-      if (distToWaypoint <= 6.0) {
+      if (distToWaypoint <= 10.0) {
         wayPointQueue.dequeue();
         Serial.println("Waypoint reached.");
         // Check if playback complete
@@ -1040,7 +1045,7 @@ void computeUserAction(float dist, float heading, float currHeading) {
   }
   else if (absHeadingDiff <= 10.0) {
     // Needs course adjustment
-    makeTurn(turnDirection);
+    Serial.println("Keep straight");
   }
   else if (absHeadingDiff <= 20.0) {
     // Needs course adjustment
@@ -1419,6 +1424,169 @@ void chkForCMDInput() {
     }
   }
 }
+
+void checkModem() {
+  if (!modemReady) {
+    if (millis() > MODEM_INIT_WAIT) {
+      Serial.println("Test AT command");
+      WaitForResponse("AT\r", "OK", 500, modemResponse, 0);
+      modemReady = true;
+      
+      Serial.println("Reseting modem");
+      WaitForResponse("ATZ\r", "OK", 500, modemResponse, 0);
+
+      Serial.println("Turn on verbose error messages");
+      WaitForResponse("AT+CMEE=2\r", "OK", 1000, modemResponse, 0);
+
+      Serial.println("Check baud rate");
+      WaitForResponse("AT+IPR?\r", "OK", 1000, modemResponse, 0);
+
+      //Serial.println("Enable SIM detect");
+      //WaitForResponse("AT#SIMDET=1\r", "OK", 1000, modemResponse, 0);
+
+      Serial.println("Setup PDP");
+      WaitForResponse("AT+CGDCONT=1,\"IP\",\"m2m.com.attz\"\r", "OK", 1000, modemResponse, 0);
+      WaitForResponse("AT%PDNSET=1,\"m2m.com.attz\",\"IP\"\r", "OK", 1000, modemResponse, 0);
+      
+      Serial.println("Check signal strength");
+      WaitForResponse("AT+CSQ\r", "OK", 500, modemResponse, 0);
+
+      //Serial.println("Check firmware version");
+      //WaitForResponse("AT+CGMR\r", "OK", 500, modemResponse, 0);
+
+      //Serial.println("Get IP address");
+      //WaitForResponse("AT#SGACT=1,1\r", "OK", 500, modemResponse, 0);
+      Serial.println("Start internet service");
+      WaitForResponse("AT@INTERNET=1\r", "OK", 500, modemResponse, 0);
+
+      WaitForResponse("AT@SOCKDIAL=1\r", "OK", 500, modemResponse, 0);
+      WaitForResponse("AT@DNSRESVDON=\"runm-central.att.io\"\r", "OK", 500, modemResponse, 0);
+
+      /*
+      Serial.println("Waiting for network connection");
+      while(!connectionGood)
+      {
+        cellSerial.print("AT+CEREG?\r");
+        currentString = "";
+        delay(1000);
+        
+        // Read cellSerial port buffer1 for UART connected to modem and print that message back out to debug cellSerial over USB
+        while(cellSerial.available() > 0) 
+        {
+          //read incoming byte from modem
+          char incomingByte = cellSerial.read();
+          //write byte out to debug cellSerial over USB
+          Serial.print(incomingByte);
+          
+          // add current byte to the string we are building
+          currentString += char(incomingByte);
+      
+          // check currentString to see if network status is "0,1" or "0,5" which means we are connected
+          if((currentString.substring(currentString.length()-3, currentString.length()) == "0,1") || 
+             (currentString.substring(currentString.length()-3, currentString.length()) == "0,5"))
+          {
+            connectionGood = true;
+            modemReady = true;
+            while(PrintModemResponse() > 0);  // consume rest of message once 0,1 or 0,5 is found
+          }
+        }
+      }
+      */
+    }
+  }
+}
+
+// sends a command to the modem, waits for the specified number of milliseconds,
+// checks whether the modem response contains the expected response, and 
+// appends the remaining response characters to the out parameter respOut
+// returns true if command received the expected response
+bool SendModemCommand(String command, String expectedResp, int msToWait, String& respOut, byte b)
+{
+  int cmd_timeout = 0;
+  if(b)
+  {
+    cellSerial.write(b);
+  }
+  else
+  {
+    cellSerial.print(command);
+  }
+  cellSerial.flush();        // just in case any characters weren't transmitted
+  delay(msToWait);
+
+  // wait for data to become available, but timeout eventually if no response is received
+  while(!cellSerial.available()) 
+  {
+    cmd_timeout++;
+    if (cmd_timeout == 1000)
+    {
+      Serial.println("command timeout");
+      return false;
+    }
+    delay(10);
+  }
+
+  // read response from modem
+  String resp = "";
+  respOut = "";
+  while(cellSerial.available() > 0)
+  {
+    resp += char(cellSerial.read());
+    if(resp.endsWith(expectedResp))
+    {
+      respOut = resp;
+      while(cellSerial.available() > 0)
+        respOut += char(cellSerial.read());  // append remaining response characters (if any)
+      return true;
+    }
+  }
+  respOut = resp;
+  return false;
+}
+
+// repeatedly sends command to the modem until correct response is received
+void WaitForResponse(String command, String expectedResp, int msToWait, String& respOut, byte b)
+{
+  bool isExpectedResp;
+  do {
+    isExpectedResp = SendModemCommand(command, expectedResp, msToWait, respOut, b);
+    Serial.println(respOut);
+    ConsumeModemResponse();   // just in case any characters remain in RX buffer
+  } while(!isExpectedResp);
+}
+
+// empty read buffer 
+void ConsumeModemResponse()
+{
+  while(cellSerial.available())
+    cellSerial.read();
+}
+
+// returns modem response as a String
+String GetModemResponse()
+{
+  String resp = "";
+  while(cellSerial.available() > 0)
+  {
+    resp += char(cellSerial.read());
+  }
+  return resp;
+}
+
+// consumes and prints modem response
+int PrintModemResponse()
+{
+  String resp = "";
+  while(cellSerial.available() > 0) 
+  {
+    // read incoming modem response into temporary string
+    resp += char(cellSerial.read());
+  }
+  Serial.println(resp);
+  
+  //return number of characters in modem response buffer -- should be zero, but some may have come in since last test
+  return cellSerial.available();
+}
 //
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -1628,6 +1796,7 @@ void setup() {
 //
 void loop() {
 //  testVRUCom();
+  //checkModem();
   testBLECom();
 //  testCellCom();
   chkForCMDInput();
