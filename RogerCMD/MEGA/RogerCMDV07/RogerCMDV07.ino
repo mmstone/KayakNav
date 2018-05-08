@@ -50,6 +50,7 @@ extern "C" {
 #define BLE_WAIT_MS             250          // Time to wait for BLE response n ms
 #define TRIP_COMPLETE_INT_MS    10000        // 10 sec interval to let user know trip is complete
 #define MODEM_INIT_WAIT         10000        // Time for modem to initialize
+#define WAYPOINTS_INIT_LEN      200
 //
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -208,6 +209,10 @@ String currentString = "";
 String modemResponse = "";
 PlaybackStep currPlaybackStep = SELECT_FILE;
 QueueArray<Waypoint> wayPointQueue;
+Waypoint waypoints[WAYPOINTS_INIT_LEN];
+int waypointsLen = WAYPOINTS_INIT_LEN;
+int currWaypointInd = 0;
+int lastWaypointInd = 0;
 
 //
 //
@@ -939,14 +944,60 @@ void checkTripComplete() {
   }
 }
 
+int findStartingWaypointInd() {
+  // Get current location
+  uint32_t currTime2 = millis();
+  uint32_t elapsedTime = 0;
+  String bleResp = "";
+  bleCentral.println("o");
+  do {
+    while (bleCentral.available()) {
+      bleResp += (char)bleCentral.read();
+    }
+    elapsedTime = millis() - currTime2;
+  } while (elapsedTime < BLE_WAIT_MS); // Wait for 200ms max
+
+  float latDeg = 0.0;
+  float lonDeg = 0.0;
+  String parsedCoord = parseGPSString(bleResp, &latDeg, &lonDeg);
+  if ((parsedCoord.length() == 0) || (latDeg == 0.0 && lonDeg == 0.0)) {
+    // Error, start at beginning
+    Serial.print("Invalid GPS reading, ");
+    Serial.println("start at waypoint 0");
+    return 0;
+  }
+
+  // Get destination
+  Waypoint destination = waypoints[lastWaypointInd-1];
+  float distToDest = dist_between(latDeg, lonDeg, destination.gpsLatDeg, destination.gpsLonDeg);
+  Serial.print("Distance to next destination: ");
+  Serial.println(distToDest);
+
+  // Get nearest waypoint
+  for (int i=currWaypointInd; i<lastWaypointInd; i++) {
+    Waypoint waypoint = waypoints[i];
+    float totalDist = dist_between(waypoint.gpsLatDeg, waypoint.gpsLonDeg, destination.gpsLatDeg, destination.gpsLonDeg);
+    if (totalDist < distToDest) {
+      Serial.print("Start at waypoint ");
+      Serial.println(currWaypointInd);
+      
+      return currWaypointInd;
+    }
+  }
+
+  Serial.print("Start at waypoint 0");
+  return 0;
+}
+
 void computeTripInfo() {
-  if ((currMode == PLAYBACK) && (currPlaybackStep == IN_PROGRESS) && (!wayPointQueue.isEmpty())) {
+  if ((currMode == PLAYBACK) && (currPlaybackStep == IN_PROGRESS) && (currWaypointInd < lastWaypointInd)) {
     uint32_t currTime = millis();
 
     if ((currTime - timer) >= PLAYBACK_INT_MS) {
       timer = currTime;
       // Get next waypoint
-      Waypoint nextWaypoint = wayPointQueue.peek();
+      Waypoint nextWaypoint = waypoints[currWaypointInd];
+      
       // Get current location
       uint32_t currTime2 = millis();
       uint32_t elapsedTime = 0;
@@ -964,6 +1015,7 @@ void computeTripInfo() {
       String parsedCoord = parseGPSString(bleResp, &latDeg, &lonDeg);
       if ((parsedCoord.length() == 0) || (latDeg == 0.0 && lonDeg == 0.0)) {
         // Error, skip calculations
+        Serial.println("Invalid GPS reading");
         return;
       }
 
@@ -993,10 +1045,10 @@ void computeTripInfo() {
 
       // Check if waypoint reached
       if (distToWaypoint <= 10.0) {
-        wayPointQueue.dequeue();
+        currWaypointInd++;
         Serial.println("Waypoint reached.");
         // Check if playback complete
-        if (wayPointQueue.isEmpty()) {
+        if (currWaypointInd == lastWaypointInd) {
           currPlaybackStep = COMPLETE;
           Serial.println("Trip complete!");
           return;
@@ -1208,7 +1260,11 @@ void confirmAction() {
       if (loadFileForPlayback()) {
         // success
         currPlaybackStep = FILE_LOADED;
+        currWaypointInd = 0;
+        lastWaypointInd = 0;
         loadWaypointsFromFile();
+        currPlaybackStep = WAYPOINTS_LOADED;
+        currWaypointInd = findStartingWaypointInd();
       }
       else {
         // fail
@@ -1223,6 +1279,18 @@ void confirmAction() {
   }
 }
 
+void addWaypointToArr(Waypoint waypoint) {
+  Serial.print("lastWaypointInd = ");
+  Serial.print(lastWaypointInd);
+  Serial.print(", waypointsLen = ");
+  Serial.println(waypointsLen);
+  
+  if (lastWaypointInd < waypointsLen) {
+    //memcpy(waypoints[lastWaypointInd++], waypoint, sizeof(Waypoint));
+    waypoints[lastWaypointInd++] = waypoint;
+  }
+}
+
 void loadWaypointsFromFile() {
   String line = "";
   int seqNum = 0;
@@ -1233,9 +1301,10 @@ void loadWaypointsFromFile() {
 
     line += c;
     if (c == '\n') {
+      Serial.println(line);
       Waypoint waypoint = parseWaypoint(line);
       waypoint.seqNum = seqNum++;
-      wayPointQueue.enqueue(waypoint);
+      addWaypointToArr(waypoint);
 
       Serial.print("Waypoint ");
       Serial.print(waypoint.seqNum);
@@ -1249,11 +1318,8 @@ void loadWaypointsFromFile() {
   }
   playbackFile.close();
 
-  if (wayPointQueue.count() > 0) {
-    currPlaybackStep = WAYPOINTS_LOADED;
-    Serial.print("# waypoints: ");
-    Serial.println(wayPointQueue.count());
-  }
+  Serial.print("# waypoints: ");
+  Serial.println(lastWaypointInd);
 }
 
 Waypoint parseWaypoint(String str) {
@@ -1408,6 +1474,7 @@ void chkForCMDInput() {
           tripFile.close();
         }
 
+        free(waypoints);
         currMode = NONE;
         currPlaybackStep = SELECT_FILE;
         numpadEntry = "";
