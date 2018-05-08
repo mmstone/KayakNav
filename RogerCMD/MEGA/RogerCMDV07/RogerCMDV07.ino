@@ -242,26 +242,28 @@ void playAll() {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 void playRight() {
+//  queueVoiceResponse(66);                       //   Right
   if (trace) {
     Serial.print("Right Effect #");
     Serial.println(effect);
     }
-  tcaSelect(0);                    // Right Side
+  tcaSelect(0);                                 // Right Side
   playBuzzer();
-  delay(250);
+  delay(100);
 }
 //
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 void playLeft() {
+//  queueVoiceResponse(67);                        //  Left
   if (trace) {
     Serial.print("Left Effect #");
     Serial.println(effect);
     }
   tcaSelect(1);
   playBuzzer();
-  delay(250);
+  delay(100);
 }
 //
 //
@@ -383,9 +385,9 @@ void sdCardInit() {
     Serial.println("Card init. failed!");
     error(2);
   }
-  //writeSDTripData();
 }
-
+//
+//
 void sdCardOpenNext() {
   for (uint8_t i = 0; i < 100; i++) {
     filename[6] = '0' + i/10;
@@ -407,26 +409,82 @@ void sdCardOpenNext() {
 }
 //
 //
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+//     Various VRU Feedback functions
+//
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+void queueVoiceResponse(uint8_t vRec ) {
+  vruSerial.print('Q');
+  vruSerial.print(vRec, DEC);
+  vruSerial.println(';');
+//  vruSerial.flush();
+  delay(45);
+}
+//
+//
+//
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+void sendVoiceResponse() {
+
+
+
+}
+//
+//
+//
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
-void writeSDTripData() {
-  tripFile.print("Sequence:");      tripFile.print(",Time:");
-  tripFile.print(",Date:");         tripFile.print(",Fix:");
-  tripFile.print(",Quality:");      tripFile.print(",Latitude:");
-  tripFile.print(",Longitude:");    tripFile.print(",Speed(knots):");
-  tripFile.print(",Angle:");        tripFile.print(",Altitude:");
-  tripFile.print(",Satellites:");   tripFile.print(",Roll:");
-  tripFile.print(",Pitch:");        tripFile.print(",Heading:");
-  tripFile.print(",CompHead:");     tripFile.print(",QW:");
-  tripFile.print(",QX:");           tripFile.print(",QY:");
-  tripFile.print(",QZ:");           tripFile.print(",BattVolts:");
-  tripFile.println();               tripFile.flush();
+void vruMainMenu() {
+  delay(2000);
+  queueVoiceResponse(168);                        //  Main Menu
+  queueVoiceResponse(169);
+  delay(3000);
+  queueVoiceResponse(42);                        //  Press 'A'
+  queueVoiceResponse(30);
+  delay(200);
+  queueVoiceResponse(4);                        //   For Manual Recording
+  queueVoiceResponse(63);
+  queueVoiceResponse(186);
+  delay(3000);
+  queueVoiceResponse(42);                        //  Press 'B'
+  queueVoiceResponse(31);
+  delay(200);
+  queueVoiceResponse(4);                        //   For Auto Recording
+  queueVoiceResponse(173);
+  queueVoiceResponse(186);
+  delay(3000);
+  queueVoiceResponse(42);                        //  Press 'C' to
+  queueVoiceResponse(32);
+  queueVoiceResponse(2);                        
+  delay(200);
+  queueVoiceResponse(61);                        //   Play 
+  queueVoiceResponse(68);                        //   Back 
+  delay(200);
+  queueVoiceResponse(30);                        //   A Trip File 
+  queueVoiceResponse(62);
+  queueVoiceResponse(160);
+  delay(3500);
+  queueVoiceResponse(42);                        //  Press 'D' For
+  queueVoiceResponse(33);
+  delay(200);
+  queueVoiceResponse(4);                        
+  queueVoiceResponse(64);                        //   For Restart
+  delay(2000);    
 }
 //
 //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
-void spare1() {
+void vruManRecMode() {
+  delay(1000);
+  queueVoiceResponse(76);                 //  starting manual recording
+  delay(200);
+  queueVoiceResponse(63);
+  delay(200);
+  queueVoiceResponse(186);
 
 
 }
@@ -434,39 +492,46 @@ void spare1() {
 //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
-void spare2() {
-
+void vruAutoRecMode() {
+  delay(1000);
+  queueVoiceResponse(76);                 //  starting auto recording
+  delay(200);
+  queueVoiceResponse(173);
+  delay(200);
+  queueVoiceResponse(186);
+}
+//
+//
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+void vruPlayTripMode() {
+  delay(1000);
+  queueVoiceResponse(76);                 //  starting trip file playback
+  delay(200);
+  queueVoiceResponse(62);
+  queueVoiceResponse(160);
+  delay(200);
+  queueVoiceResponse(61);
+  queueVoiceResponse(68);
+}
+//
+//
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+void vruResetMode() {
+  
 
 
 }
 //
 //
-/* ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
-void loadGPSData() {
-    navHour =
-    navMinute =
-    navSeconds =
-    navMillsec =
-    navMonth =
-    navDay =
-    navYear =
-    gpsFix =
-    gpsQual =
-    if (   ) {
-      gpsLatitude  =
-      gpsLat       =
-      gpsLongitude =
-      gpsLon       =
-      gpsKnots     =
-      gpsAngle     =
-      gpsAltitude  =
-      gpsSats      =
-      convertGPSToDMS();
-      computeDecimalDeg();
-      }
+void vruWayPointRecorded() {
+
+
+
 }
-*/
 //
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -521,51 +586,6 @@ void computeDecimalDeg() {
   if (gpsLon == 'W') {
     decimalDegLon = (decimalDegLon * -1);
     }
-}
-//
-//
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//
-void printNAVData() {
-  if (!trace) {
-    return;
-    }
-  Serial.print("\nTime: ");
-  Serial.print(navHour, DEC); Serial.print(':');
-  Serial.print(navMinute, DEC); Serial.print(':');
-  Serial.print(navSeconds, DEC);
-  Serial.print("  Date: ");
-  Serial.print(navMonth, DEC); Serial.print('/');
-  Serial.print(navDay, DEC); Serial.print("/20");
-  Serial.println(navYear, DEC);
-  Serial.print("Fix: "); Serial.print(gpsFix, DEC);
-  Serial.print(" Qual: "); Serial.println(gpsQual, DEC);
-  if (gpsFix) {
-    Serial.print(" Lat: "); Serial.print(gpsLatitude, 4);
-    Serial.println(gpsLat); Serial.print(" Lat DecDeg: ");
-    Serial.println(decimalDegLat, 6);  Serial.print(" Lat Deg, Min, Sec: ");
-    Serial.print(gpsLatDeg, DEC); Serial.print(", ");
-    Serial.print(gpsLatMin, DEC); Serial.print(", ");
-    Serial.println(gpsLatSec, 2); Serial.print(" Long: ");
-    Serial.print(gpsLongitude, 4); Serial.println(gpsLon);
-    Serial.print(" Long DecDeg: "); Serial.println(decimalDegLon, 6);
-    Serial.print(" Long Deg, Min, Sec: "); Serial.print(gpsLonDeg, DEC);
-    Serial.print(", "); Serial.print(gpsLonMin, DEC);
-    Serial.print(", "); Serial.println(gpsLonSec, 2);
-    Serial.print(" Knots: "); Serial.println(gpsKnots, 2);
-    Serial.print(" Ang: "); Serial.println(gpsAngle, 2);
-    Serial.print(" Alt: "); Serial.println(gpsAltitude);
-    Serial.print(" Sat: "); Serial.println(gpsSats, DEC);
-    Serial.print(" Roll: "); Serial.print(roll);
-    Serial.print(" Pitch: "); Serial.print(pitch);
-    Serial.print(" Head: ");  Serial.print(heading);
-    Serial.print(" QHead: "); Serial.print(qHead);
-    Serial.print(" QW: "); Serial.print(qW);
-    Serial.print(" QX: "); Serial.print(qX);
-    Serial.print(" QY: "); Serial.print(qY);
-    Serial.print(" QZ: "); Serial.println(qZ);
-    Serial.print(" VBat: " ); Serial.println(measuredVbat);
-  }
 }
 //
 //
@@ -630,207 +650,6 @@ void computeHeading() {
     }
 }
 //
-//
-//
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//
-void checkForCMDDataReq() {
-  stringComplete = false;
-  while (bleCentral.available() && !stringComplete) {
-    char bleChar = (char)bleCentral.read();            // get the new byte:
-    if (bleChar >= 'a' && bleChar <= 'z') {
-      bleChar = bleChar &~ (0x20);
-      }
-    switch (bleChar) {                                // check for data type indicator
-      case ('A'):
-        Altitude();
-        break;
-      case ('B'):
-        Battery();
-        break;
-      case ('D'):
-        Date();
-        break;
-      case ('E'):
-        Error();
-        break;
-      case ('G'):
-        GPSLoc();
-        break;
-      case ('H'):
-        Heading();
-        break;
-      case ('L'):
-        DegMinSec();
-        break;
-      case ('N'):
-        NavData();
-        break;
-      case ('O'):
-        DecDegLoc();
-        break;
-      case ('Q'):
-        RecSequence();
-        break;
-      case ('R'):
-        bleSignal();
-        break;
-      case ('S'):
-        Satellites();
-        break;
-      case ('T'):
-        Time();
-        break;
-      case ('V'):
-        Velocity();
-        break;
-    // if the incoming character is a newline, set a flag
-    // so the main loop can do something about it:
-      case '\n':
-        stringComplete = true;
-        break;
-      default:
-        bleCentral.println("CMD ERROR" );
-        bleCentral.flush();
-        stringComplete = false;
-        break;
-      }
-    }
-}
-//
-//////////////////////////////////////////////////////////////////////////////////////////////////
-//
-void Altitude() {
-  bleCentral.print("ALT = " );
-  bleCentral.println(gpsAltitude, DEC );
-}
-//
-//////////////////////////////////////////////////////////////////////////////////////////////////
-//
-void Battery() {
-  bleCentral.print("BATT = " );
-  bleCentral.println(measuredVbat, 2);
-}
-//
-//////////////////////////////////////////////////////////////////////////////////////////////////
-//
-void Date() {
-  bleCentral.print("DATE = " );
-  bleCentral.print(navMonth, DEC);
-  bleCentral.print('/');
-  bleCentral.print(navDay, DEC);
-  bleCentral.print("/20");
-  bleCentral.println(navYear, DEC);
-}
-//
-//////////////////////////////////////////////////////////////////////////////////////////////////
-//
-void Error() {
-  bleCentral.print("ERR = " );
-  bleCentral.print(gpsLatError, DEC);
-  bleCentral.print(',');
-  bleCentral.println(gpsLonError, DEC);
-}
-//
-//////////////////////////////////////////////////////////////////////////////////////////////////
-//
-void GPSLoc() {
-  bleCentral.print("GPSLAT = " );
-  bleCentral.print(gpsLatitude, 4);
-  bleCentral.println(gpsLat);
-  bleCentral.print("GPSLON = " );
-  bleCentral.print(gpsLongitude, 4);
-  bleCentral.println(gpsLon);
-}
-//
-//////////////////////////////////////////////////////////////////////////////////////////////////
-//
-void Heading() {
-  bleCentral.print("HEAD = " );
-  bleCentral.println(heading, 2);
-}
-//
-//////////////////////////////////////////////////////////////////////////////////////////////////
-//
-void DegMinSec() {
-  bleCentral.print("LATDMS = " );
-  bleCentral.print(gpsLatDeg); bleCentral.print(',');
-  bleCentral.print(gpsLatMin); bleCentral.print(',');
-  bleCentral.println(gpsLatSec, 2);
-  bleCentral.print("LONDMS = " );
-  bleCentral.print(gpsLonDeg); bleCentral.print(',');
-  bleCentral.print(gpsLonMin); bleCentral.print(',');
-  bleCentral.println(gpsLonSec, 2);
-}
-//
-//////////////////////////////////////////////////////////////////////////////////////////////////
-//
-void NavData() {
-  Date();
-  Time();
-  GPSLoc();
-  Heading();
-  Velocity();
-  Satellites();
-  bleSignal();
-  Error();
-}
-//
-//////////////////////////////////////////////////////////////////////////////////////////////////
-//
-void DecDegLoc() {
-  bleCentral.print("DECLAT = " );
-  bleCentral.println(decimalDegLat, 6);
-  bleCentral.print("DECLON = " );
-  bleCentral.println(decimalDegLon, 6);
-}
-//
-//////////////////////////////////////////////////////////////////////////////////////////////////
-//
-void RecSequence() {
-  bleCentral.print("RSEQ = " );
-  bleCentral.println(tripRecSeq);
-}
-//
-//////////////////////////////////////////////////////////////////////////////////////////////////
-//
-void bleSignal() {
-  bleCentral.print("RSSI = " );
-  bleCentral.println(bleRSSI, DEC);
-}
-////////////////////////////////////////////////////////////////////////////////////////////////////
-//
-void Satellites() {
-  bleCentral.print("SAT = " );
-  bleCentral.println(gpsSats);
-}
-//
-//////////////////////////////////////////////////////////////////////////////////////////////////
-//
-void Time() {
-  bleCentral.print("TIME = " );
-  bleCentral.print(navHour, DEC); bleCentral.print(':');
-  bleCentral.print(navMinute, DEC); bleCentral.print(':');
-  bleCentral.println(navSeconds, DEC);
-}
-//
-//////////////////////////////////////////////////////////////////////////////////////////////////
-//
-void Velocity() {
-  bleCentral.print("KNOTS = " );
-  bleCentral.println(gpsKnots, 2);
-}
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////////////////////////
-//
-void getBLERSSI() {
-
-
-
-
-}
 //
 //
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1002,7 +821,7 @@ void computeTripInfo() {
       uint32_t currTime2 = millis();
       uint32_t elapsedTime = 0;
       String bleResp = "";
-      bleCentral.println("o");
+      bleCentral.println('o');
       do {
         while (bleCentral.available()) {
           bleResp += (char)bleCentral.read();
@@ -1031,7 +850,7 @@ void computeTripInfo() {
       currTime2 = millis();
       elapsedTime = 0;
       bleResp = "";
-      bleCentral.println("h");
+      bleCentral.println('H');
       do {
         while (bleCentral.available()) {
           bleResp += (char)bleCentral.read();
@@ -1143,9 +962,9 @@ void makeTurn(Direction dir) {
       break;
   }
 }
-
-float parseHeading(String str)
-{
+//
+//
+float parseHeading(String str) {
   int startInd = str.lastIndexOf('=') + 2;
   int decimalInd = str.lastIndexOf('.');
   int len = (decimalInd-startInd) + 3;
@@ -1160,7 +979,24 @@ float parseHeading(String str)
 
   return headingStr.toFloat();
 }
+//
+//
+float parseRSSI(String str) {
+  int startInd = str.lastIndexOf('=') + 2;
+  int len = 4;
+  String rssiStr = "";
 
+  while (rssiStr.length() < len) {
+    char c = str.charAt(startInd++);
+    if (isDigit(c) || c == '-') {
+      rssiStr += c;
+    }
+  }
+
+  return rssiStr.toFloat();
+}
+//
+//
 float dist_between(float lat1, float long1, float lat2, float long2)
 {
   // returns distance in meters between two positions, both specified
@@ -1185,8 +1021,8 @@ float dist_between(float lat1, float long1, float lat2, float long2)
   delta = atan2(delta, denom);
   return delta * 6372795;
 }
-
-
+//
+//
 float course_to(float lat1, float long1, float lat2, float long2)
 {
   // returns course in degrees (North=0, West=270) from position 1 to position 2,
@@ -1210,7 +1046,6 @@ float course_to(float lat1, float long1, float lat2, float long2)
 //
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
-
 void setMode(Mode mode) {
   if (currMode == NONE) {
     currMode = mode;
@@ -1237,8 +1072,11 @@ void setMode(Mode mode) {
     Serial.println("Error, exit current mode before setting new mode");
   }
 }
-
+//
+//
 void processNumInput(char num) {
+  uint8_t vru = (num - 48);
+  queueVoiceResponse(vru);
   if (currMode == PLAYBACK) {
     if (currPlaybackStep == SELECT_FILE) {
       if (numpadEntry.length() < 2) {
@@ -1253,7 +1091,8 @@ void processNumInput(char num) {
     }
   }
 }
-
+//
+//
 void confirmAction() {
   if ((currMode == PLAYBACK) && (currPlaybackStep == SELECT_FILE)) {
     if (numpadEntry.length() > 0) {
@@ -1263,21 +1102,26 @@ void confirmAction() {
         currWaypointInd = 0;
         lastWaypointInd = 0;
         loadWaypointsFromFile();
+<<<<<<< HEAD
         currPlaybackStep = WAYPOINTS_LOADED;
         currWaypointInd = findStartingWaypointInd();
+=======
+        //  trip file loaded
+>>>>>>> master
       }
       else {
-        // fail
+        // trip file load failed
       }
     }
     else {
-      // invalid entry
+      // invalid file number entry
     }
   }
   else if ((currMode == PLAYBACK) && (currPlaybackStep == WAYPOINTS_LOADED)) {
     currPlaybackStep = IN_PROGRESS;
   }
 }
+<<<<<<< HEAD
 
 void addWaypointToArr(Waypoint waypoint) {
   Serial.print("lastWaypointInd = ");
@@ -1291,6 +1135,10 @@ void addWaypointToArr(Waypoint waypoint) {
   }
 }
 
+=======
+//
+//
+>>>>>>> master
 void loadWaypointsFromFile() {
   String line = "";
   int seqNum = 0;
@@ -1321,7 +1169,8 @@ void loadWaypointsFromFile() {
   Serial.print("# waypoints: ");
   Serial.println(lastWaypointInd);
 }
-
+//
+//
 Waypoint parseWaypoint(String str) {
   Waypoint waypoint = {seqNum:0, time:0, gpsLatDeg:0.0, gpsLonDeg:0.0};
   int startInd = 0;
@@ -1337,7 +1186,8 @@ Waypoint parseWaypoint(String str) {
 
   return waypoint;
 }
-
+//
+//
 bool loadFileForPlayback() {
   String filename = "CMDT00" + numpadEntry + ".TXT";
   if (!SD.exists(filename)) {
@@ -1355,14 +1205,15 @@ bool loadFileForPlayback() {
 
   return true;
 }
-
+//
+//
 void recordWaypoint() {
   if ((currMode == MANUAL_REC) || (currMode == AUTO_REC)) {
     uint32_t currTime = millis();
     uint32_t elapsedTime = 0;
     String bleResp = "";
     // Get GPS coordinates from NAV server
-    bleCentral.println("o");
+    bleCentral.println('o');
     do {
       while (bleCentral.available()) {
         bleResp += (char)bleCentral.read();
@@ -1388,7 +1239,8 @@ void recordWaypoint() {
     //Serial.println("Error, not in recording mode");
   }
 }
-
+//
+//
 void autoRecordWaypoint() {
   uint32_t currTime = millis();
   if ((currTime - timer) >= AUTO_RECORD_INT_MS) {
@@ -1399,7 +1251,8 @@ void autoRecordWaypoint() {
     timer = currTime;
   }
 }
-
+//
+//
 String parseGPSString(String gpsStr, float *latDeg, float *lonDeg) {
   int firstInd = gpsStr.indexOf('=');
   int lastInd = gpsStr.lastIndexOf('=');
@@ -1429,12 +1282,13 @@ String parseGPSString(String gpsStr, float *latDeg, float *lonDeg) {
 
     *latDeg = lat.toFloat();
     *lonDeg = lon.toFloat();
-    return lat + "," + lon;
+    return lat + ',' + lon;
   }
 
   return "";
 }
-
+//
+//
 void chkForCMDInput() {
   keyPadInput = cmdKeyPad.getKey();
 //
@@ -1457,34 +1311,48 @@ void chkForCMDInput() {
         break;
       case 'A':
         // For entering manual record mode
+        queueVoiceResponse(30);                                          // say "A"
         setMode(MANUAL_REC);
+        vruManRecMode();
         break;
       case 'B':
         // For entering auto record mode
+        queueVoiceResponse(31);                                          // say "B"
         setMode(AUTO_REC);
+        vruAutoRecMode();
         break;
       case 'C':
         // For entering playback mode
+        queueVoiceResponse(32);                                          // say "C"
         setMode(PLAYBACK);
+        vruPlayTripMode();
         break;
       case 'D':
+        queueVoiceResponse(33);                                          // say "D"
         // For exiting current mode
         // If recording, close files and cleanup
         if ((currMode == MANUAL_REC) || (currMode == AUTO_REC)) {
           tripFile.close();
         }
+<<<<<<< HEAD
 
         free(waypoints);
+=======
+>>>>>>> master
         currMode = NONE;
         currPlaybackStep = SELECT_FILE;
         numpadEntry = "";
         Serial.println("Mode reset");
+        vruResetMode();        
         break;
       case '*':
         // For manually recording waypoints
+        queueVoiceResponse(43);                                          // say "Star"
         recordWaypoint();
+        vruWayPointRecorded();
         break;
       case '#':
+        queueVoiceResponse(44);                                          // say "Pound"
         // For confirming actions
         confirmAction();
         break;
@@ -1655,37 +1523,116 @@ int PrintModemResponse()
   return cellSerial.available();
 }
 //
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
-void kbdVRUHapticCheck() {
-  queueVoiceResponse(42);                       //   Press
-  queueVoiceResponse(1);                        //   One (1)
-  queueVoiceResponse(4);                        //   For (or 4)
-  queueVoiceResponse(67);                       //   Left
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+void chkForNAVServer() {
+  boolean navConnected = false;
+  uint32_t currTime3;
+  uint32_t elapsedTime = 0;
+  String bleResp = "";  
+  int bleConnectCount = 0;
   do {
-    chkForCMDInput();
-    } while (keyPadInput != '1');
-  playLeft();                                   //   Buzz Left
-  delay(100);
-  queueVoiceResponse(42);                       //   Press
-  queueVoiceResponse(3);                        //   Three (3)
-  queueVoiceResponse(4);                        //   For (or 4)
-  queueVoiceResponse(66);                       //   Right
-  do {
-    chkForCMDInput();
-    } while (keyPadInput != '3');
-  playRight();                                   //  Buzz Right
-  delay(100);
-  queueVoiceResponse(135);                       //   Congratulations
-  queueVoiceResponse(104);                       //   System
-  queueVoiceResponse(46);                        //   On
+    queueVoiceResponse(175);                          // connecting to the nav server
+    queueVoiceResponse(2);
+    delay(100);
+    queueVoiceResponse(158);
+    queueVoiceResponse(174);
+    delay(500);
+    currTime3 = millis();
+    bleCentral.println('H');
+    do {
+      while (bleCentral.available()) {
+        bleResp += (char)bleCentral.read();
+       }
+       elapsedTime = millis() - currTime3;
+      } while (elapsedTime < BLE_WAIT_MS);             // Wait for 200ms max
+      float currHeading = parseHeading(bleResp);
+      delay(500);
+//
+      elapsedTime = 0;
+      bleResp = "";  
+      bleRSSI = -200;     
+      currTime3 = millis();
+      bleCentral.println('R');
+      do {
+        while (bleCentral.available()) {
+          bleResp += (char)bleCentral.read();
+        }
+        elapsedTime = millis() - currTime3;
+      } while (elapsedTime < BLE_WAIT_MS);              // Wait for 200ms max
+      float rssi = parseRSSI(bleResp);      
+      bleRSSI = rssi;
+      if (bleRSSI > -120.00) {      
+        navConnected = true; }                         // Signal greater than -120dBm is good
+      bleConnectCount++;
+    } while (!navConnected && bleConnectCount < 5);
+  delay(1000);
+  if (navConnected) {
+    queueVoiceResponse(176);                            //  Connected to ROGERNAV
+    queueVoiceResponse(2);
+    delay(100);
+    queueVoiceResponse(133);
+    } else {
+    queueVoiceResponse(182);                            //   Bypassed Connecting to ROGERNAV
+    queueVoiceResponse(175);
+    delay(100);
+    queueVoiceResponse(2);
+    queueVoiceResponse(133);
+  }
+  delay(1000);
 }
 //
 //
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
+void kbdVRUHapticCheck() {
+  queueVoiceResponse(42);                       //   Press
+  queueVoiceResponse(1);                        //   One (1)
+  delay(100);
+  queueVoiceResponse(4);                        //   For (or 4)
+  queueVoiceResponse(67);                       //   Left
+  do {
+    chkForCMDInput();
+    } while (keyPadInput != '1');
+  delay(200);
+  for (byte a = 0; a <= 4; a++) {
+    playLeft();                                   //   Buzz Left
+    delay(100);  
+    }
+  delay(500);
+  queueVoiceResponse(42);                       //   Press
+  queueVoiceResponse(3);                        //   Three (3)
+  delay(100);
+  queueVoiceResponse(4);                        //   For (or 4)
+  queueVoiceResponse(66);                       //   Right
+  do {
+    chkForCMDInput();
+    } while (keyPadInput != '3');
+  delay(200);
+  for (byte a = 0; a <= 4; a++) {
+    playRight();                                 //   Buzz Right
+    delay(100);  
+    }
+  delay(500);
+  queueVoiceResponse(135);                       //   Congratulations
+  delay(2000);
+  queueVoiceResponse(104);                       //   System
+  queueVoiceResponse(46);                        //   On
+  delay(1500);
+}
+//
+//
+//  
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
 void configRogerCMD() {
+  if (trace) {
+    Serial.println("Starting CMD Config");
+    }
   kbdVRUHapticCheck();
+  chkForNAVServer();
+  vruMainMenu();
 }
 //
 //
@@ -1737,36 +1684,16 @@ void testCellCom() {
   if (!trace) {
     return;
     }
-  while (cellSerial.available()) {
-    char cmd = cellSerial.read();
+  while (Serial.available()) {
+    char cmd = Serial.read();
     if (cmd == '\n') {
       break;
       }
-    bleCentral.write(cmd);
-    bleCentral.flush();
+    cellSerial.write(cmd);
+    cellSerial.flush();
     cellReq = true;
    }
 }
-//
-//
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//
-void queueVoiceResponse(uint16_t vRec ) {
-  vruSerial.print('Q');
-  vruSerial.println(vRec, DEC);
-  vruSerial.flush();
-}
-//
-//
-//
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//
-void sendVoiceResponse() {
-
-
-
-}
-//
 //
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1804,7 +1731,7 @@ void configSerialPorts() {
     Serial.println(F("Starting Kayak Command System"));
     delay(250);
     }
-  bleCentral.begin(115200);                                                // start the Bluetooth LE serial port
+  bleCentral.begin(115200);                                              // start the Bluetooth LE serial port
   delay(250);
   vruSerial.begin(9600);                                                 // start the Adafruit Music Maker serial port
   delay(250);
@@ -1843,19 +1770,19 @@ void setup() {
   configSerialPorts();               // initialize serial:
   configIOPins();                    // configure the IO pins
   inputString.reserve(BUFSIZE);      // reserve 256 bytes for the inputString:
-  //checkForRTC();                     // Check for an RTC
+  checkForRTC();                     // Check for an RTC
   delay(250);
   sdCardInit();                      // initialize the SD card
   delay(250);
   chkBLE();                          // start the Bluetooth LE interface
   delay(250);
-  //chkHapticDrv();
+  chkHapticDrv();
   if (trace) {
     Serial.println("Ready!");
     delay(250);
     }
 //  trace = false;
-  //configRogerCMD();
+  configRogerCMD();
 }
 //
 //
@@ -1863,18 +1790,19 @@ void setup() {
 //
 void loop() {
 //  testVRUCom();
-  //checkModem();
-  testBLECom();
+//  checkModem();
+//  testBLECom();
 //  testCellCom();
   chkForCMDInput();
   getRogerNAVData();
   autoRecordWaypoint();
   computeTripInfo();
   checkTripComplete();
-  provideHapticFeedback();
-  sendVoiceResponse();
+//  provideHapticFeedback();
+//  sendVoiceResponse();
 //
 }
 //
 //
+
 
