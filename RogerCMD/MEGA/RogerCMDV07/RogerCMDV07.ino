@@ -45,7 +45,7 @@ extern "C" {
 #define BUFSIZE                 255          // Size of the read buffer for incoming data
 #define tcaADDR                 0x70         // Address of TCA MUX
 #define sysLED                  13           // Onboard SYSTEM LED and Piezo Buzzer
-#define AUTO_RECORD_INT_MS      10000        // 10 sec interval for auto record waypoint
+#define AUTO_RECORD_INT_MS      30000        // 10 sec interval for auto record waypoint
 #define PLAYBACK_INT_MS         3000         // 3 sec interval for computing course during playback
 #define BLE_WAIT_MS             250          // Time to wait for BLE response n ms
 #define TRIP_COMPLETE_INT_MS    10000        // 10 sec interval to let user know trip is complete
@@ -1102,12 +1102,8 @@ void confirmAction() {
         currWaypointInd = 0;
         lastWaypointInd = 0;
         loadWaypointsFromFile();
-<<<<<<< HEAD
         currPlaybackStep = WAYPOINTS_LOADED;
         currWaypointInd = findStartingWaypointInd();
-=======
-        //  trip file loaded
->>>>>>> master
       }
       else {
         // trip file load failed
@@ -1121,7 +1117,6 @@ void confirmAction() {
     currPlaybackStep = IN_PROGRESS;
   }
 }
-<<<<<<< HEAD
 
 void addWaypointToArr(Waypoint waypoint) {
   Serial.print("lastWaypointInd = ");
@@ -1135,10 +1130,6 @@ void addWaypointToArr(Waypoint waypoint) {
   }
 }
 
-=======
-//
-//
->>>>>>> master
 void loadWaypointsFromFile() {
   String line = "";
   int seqNum = 0;
@@ -1332,13 +1323,10 @@ void chkForCMDInput() {
         // For exiting current mode
         // If recording, close files and cleanup
         if ((currMode == MANUAL_REC) || (currMode == AUTO_REC)) {
+          recordWaypoint();
           tripFile.close();
         }
-<<<<<<< HEAD
 
-        free(waypoints);
-=======
->>>>>>> master
         currMode = NONE;
         currPlaybackStep = SELECT_FILE;
         numpadEntry = "";
@@ -1804,5 +1792,6 @@ void loop() {
 }
 //
 //
+
 
 
