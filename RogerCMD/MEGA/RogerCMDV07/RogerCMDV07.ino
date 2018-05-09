@@ -1211,12 +1211,33 @@ void recordWaypoint() {
       }
       elapsedTime = millis() - currTime;
     } while (elapsedTime < BLE_WAIT_MS); // Wait for 200ms max
-
+    
     float latDeg = 0.0;
     float lonDeg = 0.0;
     String parsedCoord = parseGPSString(bleResp, &latDeg, &lonDeg);
+
+    // Get current heading
+    currTime = millis();
+    elapsedTime = 0;
+    bleResp = "";
+    bleCentral.println('H');
+    do {
+      while (bleCentral.available()) {
+        bleResp += (char)bleCentral.read();
+      }
+      elapsedTime = millis() - currTime;
+    } while (elapsedTime < BLE_WAIT_MS); // Wait for 200ms max
+
+    float currHeading = parseHeading(bleResp);
+    Serial.print("Heading: ");
+    Serial.println(currHeading);
+
+    String saveString = parsedCoord + ":" + String(currHeading, 2);
+    Serial.print("saveString: ");
+    Serial.println(saveString);
+
     if ((parsedCoord.length() > 0) || !(latDeg == 0.0 && lonDeg == 0.0)) {
-      tripFile.println(parsedCoord);
+      tripFile.println(saveString);
       tripFile.flush();
       Serial.print("Waypoint: ");
       Serial.println(parsedCoord);
