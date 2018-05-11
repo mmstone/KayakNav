@@ -942,7 +942,7 @@ void computeTripInfo() {
       computeUserAction(distToWaypoint, courseHeading, currHeading);
 
       // Check if waypoint reached
-      if (distToWaypoint <= 20.0) {
+      if (distToWaypoint <= 10.0) {
         totalWaypointsInd++;
         Serial.println("Waypoint reached.");
         loadNextWaypoint();
