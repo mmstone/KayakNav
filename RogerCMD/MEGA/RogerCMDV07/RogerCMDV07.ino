@@ -147,11 +147,11 @@ char keys[ROWS][COLS] = {
 };
 //
 //
-byte rowPins[ROWS] = {2, 3, 4, 5};       //connect to the row pinouts of the keypad
+byte rowPins[ROWS] = {2, 3, 4, 5};        //connect to the row pinouts of the keypad
 byte colPins[COLS] = {6, 7, 8, 9};        //connect to the column pinouts of the keypad
 //
 //
-byte bleBuffer[bleBuffSize];           // buffer to hold data to/from the bluetooth comm connection
+byte bleBuffer[bleBuffSize];              // buffer to hold data to/from the bluetooth comm connection
 //
 //
 boolean stringComplete    = false;        // whether the string is complete
@@ -251,28 +251,30 @@ void playAll() {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 void playRight() {
-//  queueVoiceResponse(66);                       //   Right
+  queueVoiceResponse(66);                       //   Right
+  delay(200);
   if (trace) {
     Serial.print("Right Effect #");
     Serial.println(effect);
     }
   tcaSelect(0);                                 // Right Side
   playBuzzer();
-  delay(100);
+  delay(200);
 }
 //
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 void playLeft() {
-//  queueVoiceResponse(67);                        //  Left
+  queueVoiceResponse(67);                        //  Left
+  delay(200);
   if (trace) {
     Serial.print("Left Effect #");
     Serial.println(effect);
     }
   tcaSelect(1);
   playBuzzer();
-  delay(100);
+  delay(200);
 }
 //
 //
@@ -284,7 +286,6 @@ void playBuzzer() {
   drvHap.setWaveform(1, 0);       // end waveform
 // play the effect!
   drvHap.go();
-
 }
 //
 //
@@ -366,8 +367,6 @@ byte scanI2CBus() {
 }
 //
 //
-
-
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // blink out an error code
 void error(uint8_t errno) {
@@ -404,7 +403,7 @@ void sdCardOpenNext() {
 // create if does not exist, do not open existing, write, sync after write
     if (! SD.exists(filename)) {
       break;
-    }
+    } 
   }
 //
   tripFile = SD.open(filename, FILE_WRITE);
@@ -413,6 +412,7 @@ void sdCardOpenNext() {
     Serial.println(filename);
     error(3);
   }
+  vruSayFileNumber();
   Serial.print("Writing to ");
   Serial.println(filename);
 }
@@ -428,7 +428,6 @@ void queueVoiceResponse(uint8_t vRec ) {
   vruSerial.print('Q');
   vruSerial.print(vRec, DEC);
   vruSerial.println(';');
-//  vruSerial.flush();
   delay(45);
 }
 //
@@ -451,6 +450,15 @@ void vruMainMenu() {
   queueVoiceResponse(168);                        //  Main Menu
   queueVoiceResponse(169);
   delay(3000);
+  vruPressA();
+  vruPressB();
+  vruPressC();
+  vruPressD();
+}
+// 
+//
+//
+void vruPressA() {  
   queueVoiceResponse(42);                        //  Press 'A'
   queueVoiceResponse(30);
   delay(200);
@@ -458,6 +466,11 @@ void vruMainMenu() {
   queueVoiceResponse(63);
   queueVoiceResponse(186);
   delay(3000);
+}
+//
+//
+//
+void vruPressB() {
   queueVoiceResponse(42);                        //  Press 'B'
   queueVoiceResponse(31);
   delay(200);
@@ -465,6 +478,11 @@ void vruMainMenu() {
   queueVoiceResponse(173);
   queueVoiceResponse(186);
   delay(3000);
+}
+//
+//
+//
+void vruPressC() { 
   queueVoiceResponse(42);                        //  Press 'C' to
   queueVoiceResponse(32);
   queueVoiceResponse(2);                        
@@ -476,12 +494,31 @@ void vruMainMenu() {
   queueVoiceResponse(62);
   queueVoiceResponse(160);
   delay(3500);
-  queueVoiceResponse(42);                        //  Press 'D' For
+}
+//
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+void vruPressD()  {  
+  queueVoiceResponse(42);                        //  Press 'D' To
   queueVoiceResponse(33);
   delay(200);
-  queueVoiceResponse(4);                        
-  queueVoiceResponse(64);                        //   For Restart
-  delay(2000);    
+  queueVoiceResponse(2);                        
+  queueVoiceResponse(57);                        //  End current mode
+  delay(200);
+  queueVoiceResponse(184);
+  queueVoiceResponse(171);                        
+  delay(200);
+  queueVoiceResponse(134);                        //  And Return To
+  queueVoiceResponse(156);
+  delay(300);   
+  queueVoiceResponse(2);                        
+  delay(200);   
+  queueVoiceResponse(158);                       //  The Main Menu    
+  delay(200);                    
+  queueVoiceResponse(168); 
+  delay(300);  
+  queueVoiceResponse(169);
+  delay(3000);
 }
 //
 //
@@ -494,8 +531,19 @@ void vruManRecMode() {
   queueVoiceResponse(63);
   delay(200);
   queueVoiceResponse(186);
-
-
+  delay(2000);
+  queueVoiceResponse(42);                //  Press Star to                         
+  queueVoiceResponse(43); 
+  delay(200);
+  queueVoiceResponse(2);
+  queueVoiceResponse(60);                //  Record a Waypoint                         
+  delay(200);
+  queueVoiceResponse(30); 
+  queueVoiceResponse(55);  
+  delay(200);
+  queueVoiceResponse(40);
+  delay(3500);
+  vruPressD();                           // Press D routine
 }
 //
 //
@@ -508,38 +556,196 @@ void vruAutoRecMode() {
   queueVoiceResponse(173);
   delay(200);
   queueVoiceResponse(186);
+  delay(2500);
+  vruPressD();                           // Press D routine
 }
 //
 //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 void vruPlayTripMode() {
-  delay(1000);
-  queueVoiceResponse(76);                 //  starting trip file playback
+  delay(1500);
+  queueVoiceResponse(2);                    // To load trip file 
   delay(200);
+  queueVoiceResponse(191);                 
+  delay(400);
   queueVoiceResponse(62);
   queueVoiceResponse(160);
   delay(200);
-  queueVoiceResponse(61);
-  queueVoiceResponse(68);
+  queueVoiceResponse(45);                   //  Enter two digit file number
+  delay(300);
+  queueVoiceResponse(2);
+  delay(200);
+  queueVoiceResponse(190);
+  delay(250);
+  queueVoiceResponse(160);
+  queueVoiceResponse(34);    
+  delay(300);
+  queueVoiceResponse(134);                  //  and press # 
+  delay(200);
+  queueVoiceResponse(42);                 
+  queueVoiceResponse(44);
+  delay(1500);
+//  vruPressD();                              // Press D routine
 }
 //
+//////////////////////////////////////////////////////////////////////////////////////////////////////
 //
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//
-void vruResetMode() {
-  
-
-
+void vruPressPoundAgain() {
+  delay(2000); 
+  queueVoiceResponse(42);                   //  Press # again to start trip playback.              
+  queueVoiceResponse(44);
+  delay(200);
+  queueVoiceResponse(192);
+  delay(300);
+  queueVoiceResponse(2);                 
+  delay(400);
+  queueVoiceResponse(58);
+  queueVoiceResponse(62);
+  delay(750);
+  queueVoiceResponse(61);
+  queueVoiceResponse(68); 
+  delay(1000);
+//  vruPressD();                              // Press D routine
 }
 //
 //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 void vruWayPointRecorded() {
-
-
-
+  delay(1000);
+  queueVoiceResponse(186);               //  Recording Way point
+  queueVoiceResponse(55);
+  delay(200);
+  queueVoiceResponse(40);
+  delay(200);
+}
+//
+//
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+void vruWayPointReached() {
+  delay(1000);
+  queueVoiceResponse(55);
+  delay(200);
+  queueVoiceResponse(40);
+  delay(200);
+  queueVoiceResponse(177);               //  Way point good
+  delay(500);
+}
+//
+//
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+void vruTripPlayStart() {
+  delay(2000);
+  queueVoiceResponse(76);                 //  starting trip file playback
+  delay(300);
+  queueVoiceResponse(62);
+  queueVoiceResponse(160);
+  delay(300);
+  queueVoiceResponse(61);
+  queueVoiceResponse(68); 
+  delay(1500);              
+}
+//
+//
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+void vruTripFileReady() {
+  delay(2000);
+  queueVoiceResponse(62);                   //  trip file ready
+  queueVoiceResponse(160);
+  delay(300);
+  queueVoiceResponse(185);
+  delay(500);              
+  vruPressPoundAgain();
+  delay(500);              
+//  vruPressD();                              // Press D routine
+}
+//
+//
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+void vruTripComplete() {
+  delay(1000);
+  queueVoiceResponse(78);                    // you have arrived
+  delay(3500);   
+}
+//
+//
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+void vruTripFileLoadErr() {
+  delay(1000);
+  queueVoiceResponse(62);                   //  trip file load error
+  queueVoiceResponse(160);
+  delay(300);
+  queueVoiceResponse(191);
+  delay(300);
+  queueVoiceResponse(107);
+  delay(3500);
+}
+//
+//
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+void vruTripFileNumErr() {
+  delay(1000);
+  queueVoiceResponse(62);                   //  trip file number error
+  queueVoiceResponse(160);
+  delay(300);
+  queueVoiceResponse(34);
+  delay(300);
+  queueVoiceResponse(107);
+  delay(3500);
+}
+//
+//
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+void vruEmptyWayPoint() {
+  delay(1000);
+  queueVoiceResponse(183);                   //  skipped recording way point
+  delay(300);
+  queueVoiceResponse(186);
+  delay(300);
+  queueVoiceResponse(55);
+  delay(200);
+  queueVoiceResponse(40);
+  delay(2500);
+}
+//
+//
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+void vruNotRecordingMode() {
+  delay(1000);
+  queueVoiceResponse(186);                   //  Recording Mode Error. 
+  delay(300);
+  queueVoiceResponse(171);
+  delay(200);
+  queueVoiceResponse(107);
+  delay(2500);
+}
+//
+//
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+void vruSayFileNumber() {
+  delay(1000);
+  queueVoiceResponse(160);                   //  File Number is  
+  delay(200);
+  queueVoiceResponse(34);
+  delay(300);
+  queueVoiceResponse(172);
+  delay(200);
+  int fn = (filename[6] - 48);
+  queueVoiceResponse(fn);
+  delay(200);
+  fn = (filename[7] - 48);
+  queueVoiceResponse(fn);
+  delay(2500);
 }
 //
 //
@@ -767,6 +973,7 @@ void checkTripComplete() {
     uint32_t currTime = millis();
     if ((currTime - timer) >= TRIP_COMPLETE_INT_MS) {
       timer = currTime;
+      vruTripComplete();
       Serial.println("Trip complete!");
     }
   }
@@ -946,12 +1153,11 @@ void computeTripInfo() {
       if (distToWaypoint <= 10.0) {
         totalWaypointsInd++;
         Serial.println("Waypoint reached.");
-        loadNextWaypoint();
-        
+        vruWayPointReached();        
         // Check if playback complete
         if (totalWaypointsInd == totalWaypoints) {
           currPlaybackStep = COMPLETE;
-          playbackFile.close();
+          vruTripComplete();
           Serial.println("Trip complete!");
           return;
         }
@@ -993,11 +1199,15 @@ void computeUserAction(float dist, float heading, float currHeading) {
 
   // How far off course they are
   if (absHeadingDiff <= 5.0) {
+    queueVoiceResponse(189);                        //  Forward
+    delay(200);
     // Minor error
     Serial.println("Keep straight");
   }
   else if (absHeadingDiff <= 10.0) {
     // Needs course adjustment
+    queueVoiceResponse(189);                        //  Forward
+    delay(200);
     Serial.println("Keep straight");
   }
   else if (absHeadingDiff <= 20.0) {
@@ -1033,9 +1243,11 @@ void makeTurn(Direction dir) {
   Serial.print("Turn ");
   switch (dir) {
     case LEFT:
+      playLeft();
       Serial.println("left");
       break;
     case RIGHT:
+      playRight();
       Serial.println("right");
       break;
     case FRONT:
@@ -1183,64 +1395,27 @@ void confirmAction() {
       if (loadFileForPlayback()) {
         // success
         currPlaybackStep = FILE_LOADED;
-        lastWaypointInd = 0;
-        currWaypointInd = 0;
-        totalWaypointsInd = 0;
-        startingWaypointsInd = findStartingWaypointInd();
-        
-        //loadWaypointsFromFile();
-        seekToStartingWaypoint();
-        totalWaypointsInd = startingWaypointsInd;
-        loadNextWaypoint();
-        currPlaybackStep = WAYPOINTS_LOADED;
+        loadWaypointsFromFile();
+        vruTripFileReady();
+        //  trip file loaded
       }
       else {
+        vruTripFileLoadErr();
         // trip file load failed
       }
     }
     else {
+       vruTripFileNumErr();
       // invalid file number entry
     }
   }
   else if ((currMode == PLAYBACK) && (currPlaybackStep == WAYPOINTS_LOADED)) {
     currPlaybackStep = IN_PROGRESS;
-    Serial.println("Playback in progress");
-  }
-}
-
-void addWaypointToArr(Waypoint waypoint) {
-  Serial.print("lastWaypointInd = ");
-  Serial.print(lastWaypointInd);
-  Serial.print(", waypointsLen = ");
-  Serial.println(waypointsLen);
-  
-  if (lastWaypointInd < waypointsLen) {
-    //memcpy(waypoints[lastWaypointInd++], waypoint, sizeof(Waypoint));
-    //waypoints[lastWaypointInd++] = waypoint;
-  }
-}
-
-void seekToStartingWaypoint() {
-  String line = "";
-  
-  for (int i=0; i<startingWaypointsInd; i++) {
-    while (playbackFile.available()) {
-      char c = playbackFile.read();
-      //Serial.print(c);
-
-      line += c;
-      if (c == '\n') {
-        Serial.print("Skipped waypoint ");
-        Serial.println(i);
-
-        line = "";
-        break;
-      }
+    vruTripPlayStart();
     }
-  }
-  
 }
-
+//
+//
 void loadWaypointsFromFile() {
   String line = "";
   int seqNum = 0;
@@ -1430,12 +1605,15 @@ void recordWaypoint() {
       Serial.print("Waypoint: ");
       Serial.println(parsedCoord);
       Serial.println("Waypoint saved");
+      vruWayPointRecorded();
     }
     else {
+      vruEmptyWayPoint();
       Serial.println("Error, empty waypoint");
     }
   }
   else {
+    vruNotRecordingMode();
     //Serial.println("Error, not in recording mode");
   }
 }
@@ -1535,12 +1713,11 @@ void chkForCMDInput() {
           recordWaypoint();
           tripFile.close();
         }
-
         currMode = NONE;
         currPlaybackStep = SELECT_FILE;
         numpadEntry = "";
         Serial.println("Mode reset");
-        vruResetMode();        
+        vruMainMenu();        
         break;
       case '*':
         // For manually recording waypoints
@@ -1764,7 +1941,7 @@ void chkForNAVServer() {
         navConnected = true; }                         // Signal greater than -120dBm is good
       bleConnectCount++;
     } while (!navConnected && bleConnectCount < 5);
-  delay(1000);
+  delay(2000);
   if (navConnected) {
     queueVoiceResponse(176);                            //  Connected to ROGERNAV
     queueVoiceResponse(2);
@@ -1793,8 +1970,8 @@ void kbdVRUHapticCheck() {
     chkForCMDInput();
     } while (keyPadInput != '1');
   delay(200);
-  for (byte a = 0; a <= 4; a++) {
-    playLeft();                                   //   Buzz Left
+  for (byte a = 0; a <= 2; a++) {
+    playLeft();                                 //   Buzz Left
     delay(100);  
     }
   delay(500);
@@ -1807,7 +1984,7 @@ void kbdVRUHapticCheck() {
     chkForCMDInput();
     } while (keyPadInput != '3');
   delay(200);
-  for (byte a = 0; a <= 4; a++) {
+  for (byte a = 0; a <= 2; a++) {
     playRight();                                 //   Buzz Right
     delay(100);  
     }
@@ -1979,8 +2156,7 @@ void setup() {
     delay(250);
     }
 //  trace = false;
-  //configRogerCMD();
-  wdt_enable(WDTO_8S);
+  configRogerCMD();
 }
 //
 //
@@ -1996,14 +2172,11 @@ void loop() {
   autoRecordWaypoint();
   computeTripInfo();
   checkTripComplete();
-  wdt_reset();
 //  provideHapticFeedback();
 //  sendVoiceResponse();
 //
 }
 //
 //
-
-
 
 
