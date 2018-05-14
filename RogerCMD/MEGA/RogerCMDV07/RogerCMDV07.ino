@@ -20,6 +20,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //  #includes
 #include <Arduino.h>
+#include <avr/wdt.h>
 #include <SPI.h>
 #include <SD.h>
 #include <Key.h>
@@ -1979,6 +1980,7 @@ void setup() {
     }
 //  trace = false;
   //configRogerCMD();
+  wdt_enable(WDTO_8S);
 }
 //
 //
@@ -1994,6 +1996,7 @@ void loop() {
   autoRecordWaypoint();
   computeTripInfo();
   checkTripComplete();
+  wdt_reset();
 //  provideHapticFeedback();
 //  sendVoiceResponse();
 //
