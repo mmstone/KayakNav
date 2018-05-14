@@ -1088,6 +1088,7 @@ void computeTripInfo() {
 
     if ((currTime - timer) >= PLAYBACK_INT_MS) {
       timer = currTime;
+      Serial.println(currTime);
       
       // Get current location
       uint32_t currTime2 = millis();
@@ -1153,10 +1154,12 @@ void computeTripInfo() {
       if (distToWaypoint <= 10.0) {
         totalWaypointsInd++;
         Serial.println("Waypoint reached.");
+        loadNextWaypoint();
         vruWayPointReached();        
         // Check if playback complete
         if (totalWaypointsInd == totalWaypoints) {
           currPlaybackStep = COMPLETE;
+          playbackFile.close();
           vruTripComplete();
           Serial.println("Trip complete!");
           return;
@@ -1395,9 +1398,17 @@ void confirmAction() {
       if (loadFileForPlayback()) {
         // success
         currPlaybackStep = FILE_LOADED;
-        loadWaypointsFromFile();
+        lastWaypointInd = 0;
+        currWaypointInd = 0;
+        totalWaypointsInd = 0;
+        startingWaypointsInd = findStartingWaypointInd();
+        
+        //loadWaypointsFromFile();
+        seekToStartingWaypoint();
+        totalWaypointsInd = startingWaypointsInd;
+        loadNextWaypoint();
+        currPlaybackStep = WAYPOINTS_LOADED;
         vruTripFileReady();
-        //  trip file loaded
       }
       else {
         vruTripFileLoadErr();
@@ -1412,10 +1423,30 @@ void confirmAction() {
   else if ((currMode == PLAYBACK) && (currPlaybackStep == WAYPOINTS_LOADED)) {
     currPlaybackStep = IN_PROGRESS;
     vruTripPlayStart();
-    }
+  }
 }
 //
 //
+void seekToStartingWaypoint() {
+  String line = "";
+  
+  for (int i=0; i<startingWaypointsInd; i++) {
+    while (playbackFile.available()) {
+      char c = playbackFile.read();
+      //Serial.print(c);
+
+      line += c;
+      if (c == '\n') {
+        Serial.print("Skipped waypoint ");
+        Serial.println(i);
+
+        line = "";
+        break;
+      }
+    }
+  }
+}
+
 void loadWaypointsFromFile() {
   String line = "";
   int seqNum = 0;
@@ -2156,7 +2187,7 @@ void setup() {
     delay(250);
     }
 //  trace = false;
-  configRogerCMD();
+//configRogerCMD();
 }
 //
 //
