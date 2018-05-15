@@ -20,6 +20,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //  #includes
 #include <Arduino.h>
+#include <avr/wdt.h>
 #include <SPI.h>
 #include <SD.h>
 #include <Key.h>
@@ -50,6 +51,8 @@ extern "C" {
 #define BLE_WAIT_MS             250          // Time to wait for BLE response n ms
 #define TRIP_COMPLETE_INT_MS    10000        // 10 sec interval to let user know trip is complete
 #define MODEM_INIT_WAIT         10000        // Time for modem to initialize
+#define WAYPOINTS_INIT_LEN      200
+#define WAYPOINT_PAGES          10
 //
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -208,6 +211,17 @@ String currentString = "";
 String modemResponse = "";
 PlaybackStep currPlaybackStep = SELECT_FILE;
 QueueArray<Waypoint> wayPointQueue;
+//Waypoint waypoints[WAYPOINTS_INIT_LEN];
+int waypointsLen = WAYPOINTS_INIT_LEN;
+int currWaypointInd = 0;
+int lastWaypointInd = 0;
+int totalWaypoints = 0;
+uint32_t filePos = 0;
+Waypoint startingWaypoints[WAYPOINT_PAGES];
+Waypoint currWaypoint;
+int startingWaypointsInd = 0;
+int totalWaypointsInd = 0;
+int numWaypointPages = 0;
 
 //
 //
@@ -965,14 +979,117 @@ void checkTripComplete() {
   }
 }
 
+int findStartingWaypointInd() {
+  // Get current location
+  uint32_t currTime2 = millis();
+  uint32_t elapsedTime = 0;
+  String bleResp = "";
+  bleCentral.println("o");
+  do {
+    while (bleCentral.available()) {
+      bleResp += (char)bleCentral.read();
+    }
+    elapsedTime = millis() - currTime2;
+  } while (elapsedTime < BLE_WAIT_MS); // Wait for 200ms max
+
+  float latDeg = 0.0;
+  float lonDeg = 0.0;
+  String parsedCoord = parseGPSString(bleResp, &latDeg, &lonDeg);
+  if ((parsedCoord.length() == 0) || (latDeg == 0.0 && lonDeg == 0.0)) {
+    // Error, start at beginning
+    Serial.print("Invalid GPS reading, ");
+    Serial.println("start at waypoint 0");
+    return 0;
+  }
+
+  String line = "";
+  Waypoint finalWaypoint = {seqNum:0, time:0, gpsLatDeg:0.0, gpsLonDeg:0.0};
+  for (int i=0; i<totalWaypoints; i++) {      
+    while (playbackFile.available()) {
+      char c = playbackFile.read();
+      //Serial.print(c);
+
+      line += c;
+      if (c == '\n') {
+        //Serial.println(line);
+        /*
+        Serial.print("seqNum: ");
+        Serial.print(i);
+        Serial.print(", totalWaypoints: ");
+        Serial.println(totalWaypoints);
+        */
+
+        if (i == totalWaypoints-1) {
+          finalWaypoint = parseWaypoint(line);
+          Serial.print("Final dest: ");
+          Serial.print(finalWaypoint.gpsLatDeg, 6);
+          Serial.print(",");
+          Serial.println(finalWaypoint.gpsLonDeg, 6);
+        }
+
+        line = "";
+        break;
+      }
+    }
+  }
+  playbackFile.seek(0);
+  
+  float distToDest = dist_between(latDeg, lonDeg, finalWaypoint.gpsLatDeg, finalWaypoint.gpsLonDeg);
+  Serial.print("Distance to final destination: ");
+  Serial.println(distToDest);
+
+  line = "";
+  Waypoint waypoint = {seqNum:0, time:0, gpsLatDeg:0.0, gpsLonDeg:0.0};
+  for (int i=0; i<totalWaypoints; i++) {      
+    while (playbackFile.available()) {
+      char c = playbackFile.read();
+      //Serial.print(c);
+
+      line += c;
+      if (c == '\n') {
+        waypoint = parseWaypoint(line);
+        float totalDist = dist_between(waypoint.gpsLatDeg, waypoint.gpsLonDeg, finalWaypoint.gpsLatDeg, finalWaypoint.gpsLonDeg);
+        if (totalDist < distToDest) {
+          Serial.print("Start at waypoint ");
+          Serial.println(i);
+          playbackFile.seek(0);
+          
+          return i;
+        }
+
+        line = "";
+        break;
+      }
+    }
+  }
+  playbackFile.seek(0);
+
+  // Get nearest waypoint
+  /*
+  for (int i=currWaypointInd; i<lastWaypointInd; i++) {
+    Waypoint waypoint = waypoints[i];
+    float totalDist = dist_between(waypoint.gpsLatDeg, waypoint.gpsLonDeg, destination.gpsLatDeg, destination.gpsLonDeg);
+    if (totalDist < distToDest) {
+      Serial.print("Start at waypoint ");
+      Serial.println(currWaypointInd);
+      
+      return currWaypointInd;
+    }
+  }
+  */
+
+  Serial.print("Start at waypoint 0");
+  return 0;
+}
+
 void computeTripInfo() {
-  if ((currMode == PLAYBACK) && (currPlaybackStep == IN_PROGRESS) && (!wayPointQueue.isEmpty())) {
+  if ((currMode == PLAYBACK) && (currPlaybackStep == IN_PROGRESS) && (totalWaypointsInd < totalWaypoints)) {
     uint32_t currTime = millis();
 
     if ((currTime - timer) >= PLAYBACK_INT_MS) {
       timer = currTime;
-      // Get next waypoint
-      Waypoint nextWaypoint = wayPointQueue.peek();
+      Serial.println(currTime);
+      
       // Get current location
       uint32_t currTime2 = millis();
       uint32_t elapsedTime = 0;
@@ -990,16 +1107,28 @@ void computeTripInfo() {
       String parsedCoord = parseGPSString(bleResp, &latDeg, &lonDeg);
       if ((parsedCoord.length() == 0) || (latDeg == 0.0 && lonDeg == 0.0)) {
         // Error, skip calculations
+        Serial.println("Invalid GPS reading");
         return;
       }
 
-      float distToWaypoint = dist_between(latDeg, lonDeg, nextWaypoint.gpsLatDeg, nextWaypoint.gpsLonDeg);
-      Serial.print("Distance to next waypoint: ");
-      Serial.println(distToWaypoint);
+      Serial.print("Next waypoint: ");
+      Serial.print(currWaypoint.seqNum);
+      Serial.print("/");
+      Serial.print(totalWaypoints-1);
+      Serial.print(" - ");
+      Serial.print(currWaypoint.gpsLatDeg, 6);
+      Serial.print(",");
+      Serial.println(currWaypoint.gpsLonDeg, 6);
 
-      float courseHeading = course_to(latDeg, lonDeg, nextWaypoint.gpsLatDeg, nextWaypoint.gpsLonDeg);
+      float distToWaypoint = dist_between(latDeg, lonDeg, currWaypoint.gpsLatDeg, currWaypoint.gpsLonDeg);
+      Serial.print("Distance to next waypoint: ");
+      Serial.print(distToWaypoint);
+      Serial.print(", ");
+
+      float courseHeading = course_to(latDeg, lonDeg, currWaypoint.gpsLatDeg, currWaypoint.gpsLonDeg);
       Serial.print("Course heading: ");
-      Serial.println(courseHeading);
+      Serial.print(courseHeading);
+      Serial.print(", ");
 
       // Get current heading
       currTime2 = millis();
@@ -1015,24 +1144,28 @@ void computeTripInfo() {
 
       float currHeading = parseHeading(bleResp);
       Serial.print("Heading: ");
-      Serial.println(currHeading);
+      Serial.print(currHeading);
+      Serial.print(", ");
+
+      // Tell user what to do based on nav info
+      computeUserAction(distToWaypoint, courseHeading, currHeading);
 
       // Check if waypoint reached
       if (distToWaypoint <= 10.0) {
-        wayPointQueue.dequeue();
+        totalWaypointsInd++;
         Serial.println("Waypoint reached.");
+        loadNextWaypoint();
         vruWayPointReached();        
         // Check if playback complete
-        if (wayPointQueue.isEmpty()) {
+        if (totalWaypointsInd == totalWaypoints) {
           currPlaybackStep = COMPLETE;
+          playbackFile.close();
           vruTripComplete();
           Serial.println("Trip complete!");
           return;
         }
       }
-
-      // Tell user what to do based on nav info
-      computeUserAction(distToWaypoint, courseHeading, currHeading);
+      Serial.println();
     }
   }
 }
@@ -1064,7 +1197,8 @@ void computeUserAction(float dist, float heading, float currHeading) {
     }
   }
   Serial.print("Off course by: ");
-  Serial.println(absHeadingDiff, 2);
+  Serial.print(absHeadingDiff, 2);
+  Serial.print(", ");
 
   // How far off course they are
   if (absHeadingDiff <= 5.0) {
@@ -1221,7 +1355,7 @@ void setMode(Mode mode) {
       case AUTO_REC:
         Serial.println("Auto record");
         sdCardOpenNext();
-        timer = millis() - 10000;
+        recordWaypoint();
         break;
       case PLAYBACK:
         Serial.println("Playback");
@@ -1259,12 +1393,22 @@ void processNumInput(char num) {
 void confirmAction() {
   if ((currMode == PLAYBACK) && (currPlaybackStep == SELECT_FILE)) {
     if (numpadEntry.length() > 0) {
+      totalWaypoints = 0;
+      
       if (loadFileForPlayback()) {
         // success
         currPlaybackStep = FILE_LOADED;
-        loadWaypointsFromFile();
+        lastWaypointInd = 0;
+        currWaypointInd = 0;
+        totalWaypointsInd = 0;
+        startingWaypointsInd = findStartingWaypointInd();
+        
+        //loadWaypointsFromFile();
+        seekToStartingWaypoint();
+        totalWaypointsInd = startingWaypointsInd;
+        loadNextWaypoint();
+        currPlaybackStep = WAYPOINTS_LOADED;
         vruTripFileReady();
-        //  trip file loaded
       }
       else {
         vruTripFileLoadErr();
@@ -1279,40 +1423,113 @@ void confirmAction() {
   else if ((currMode == PLAYBACK) && (currPlaybackStep == WAYPOINTS_LOADED)) {
     currPlaybackStep = IN_PROGRESS;
     vruTripPlayStart();
-    }
+  }
 }
 //
 //
+void seekToStartingWaypoint() {
+  String line = "";
+  
+  for (int i=0; i<startingWaypointsInd; i++) {
+    while (playbackFile.available()) {
+      char c = playbackFile.read();
+      //Serial.print(c);
+
+      line += c;
+      if (c == '\n') {
+        Serial.print("Skipped waypoint ");
+        Serial.println(i);
+
+        line = "";
+        break;
+      }
+    }
+  }
+}
+
 void loadWaypointsFromFile() {
   String line = "";
   int seqNum = 0;
 
+  if (totalWaypointsInd == 0) {
+    seqNum = startingWaypointsInd;
+    
+    for (int i=0; i<startingWaypointsInd; i++) {
+      while (playbackFile.available()) {
+        char c = playbackFile.read();
+        //Serial.print(c);
+
+        line += c;
+        if (c == '\n') {
+          Serial.print("Skipped waypoint ");
+          Serial.println(i);
+
+          line = "";
+          break;
+        }
+      }
+    }
+  }
+  else {
+    seqNum = totalWaypointsInd;
+  }
+
+  line = "";
+  int count = 0;
+  for (int i=0; i<WAYPOINTS_INIT_LEN; i++) {
+    while (playbackFile.available()) {
+      char c = playbackFile.read();
+      //Serial.print(c);
+
+      line += c;
+      if (c == '\n') {
+        Waypoint waypoint = parseWaypoint(line);
+        waypoint.seqNum = seqNum++;
+        count++;
+        //waypoints[i] = waypoint;
+
+        Serial.print("Waypoint ");
+        Serial.print(waypoint.seqNum);
+        Serial.print(": ");
+        Serial.print(waypoint.gpsLatDeg, 6);
+        Serial.print(",");
+        Serial.println(waypoint.gpsLonDeg, 6);
+        line = "";
+        break;
+      }
+    }
+  }
+
+  Serial.print(count);
+  Serial.println(" wayloads loaded");
+  if (seqNum == totalWaypoints) {
+    playbackFile.close();
+  }
+}
+
+void loadNextWaypoint() {
+  String line = "";
+  
   while (playbackFile.available()) {
     char c = playbackFile.read();
     //Serial.print(c);
 
     line += c;
     if (c == '\n') {
-      Waypoint waypoint = parseWaypoint(line);
-      waypoint.seqNum = seqNum++;
-      wayPointQueue.enqueue(waypoint);
-
-      Serial.print("Waypoint ");
-      Serial.print(waypoint.seqNum);
-      Serial.print(": ");
-      Serial.print(waypoint.gpsLatDeg, 6);
+      currWaypoint = parseWaypoint(line);
+      currWaypoint.seqNum = totalWaypointsInd;
+      Serial.print("Loaded waypoint: ");
+      Serial.print(totalWaypointsInd);
+      Serial.print("/");
+      Serial.print(totalWaypoints-1);
+      Serial.print(" - ");
+      Serial.print(currWaypoint.gpsLatDeg, 6);
       Serial.print(",");
-      Serial.println(waypoint.gpsLonDeg, 6);
+      Serial.println(currWaypoint.gpsLonDeg, 6);
+
       line = "";
+      break;
     }
-
-  }
-  playbackFile.close();
-
-  if (wayPointQueue.count() > 0) {
-    currPlaybackStep = WAYPOINTS_LOADED;
-    Serial.print("# waypoints: ");
-    Serial.println(wayPointQueue.count());
   }
 }
 //
@@ -1349,6 +1566,28 @@ bool loadFileForPlayback() {
   Serial.print("Reading from ");
   Serial.println(filename);
 
+  // Get # lines (waypoints)
+  while (playbackFile.available()) {
+    char c = playbackFile.read();
+    //Serial.print(c);
+    
+    if (c == '\n') {
+      totalWaypoints++;
+    }
+  }
+  Serial.print("Total waypoints: ");
+  Serial.println(totalWaypoints);
+
+  numWaypointPages = totalWaypoints / WAYPOINTS_INIT_LEN;
+  if (totalWaypoints % WAYPOINTS_INIT_LEN > 0) {
+    numWaypointPages++;
+  }
+  Serial.print("# memory pages: ");
+  Serial.println(numWaypointPages);
+
+  // Seek back to start
+  playbackFile.seek(0);
+
   return true;
 }
 //
@@ -1366,12 +1605,33 @@ void recordWaypoint() {
       }
       elapsedTime = millis() - currTime;
     } while (elapsedTime < BLE_WAIT_MS); // Wait for 200ms max
-
+    
     float latDeg = 0.0;
     float lonDeg = 0.0;
     String parsedCoord = parseGPSString(bleResp, &latDeg, &lonDeg);
+
+    // Get current heading
+    currTime = millis();
+    elapsedTime = 0;
+    bleResp = "";
+    bleCentral.println('H');
+    do {
+      while (bleCentral.available()) {
+        bleResp += (char)bleCentral.read();
+      }
+      elapsedTime = millis() - currTime;
+    } while (elapsedTime < BLE_WAIT_MS); // Wait for 200ms max
+
+    float currHeading = parseHeading(bleResp);
+    Serial.print("Heading: ");
+    Serial.println(currHeading);
+
+    String saveString = parsedCoord + ":" + String(currHeading, 2);
+    Serial.print("saveString: ");
+    Serial.println(saveString);
+
     if ((parsedCoord.length() > 0) || !(latDeg == 0.0 && lonDeg == 0.0)) {
-      tripFile.println(parsedCoord);
+      tripFile.println(saveString);
       tripFile.flush();
       Serial.print("Waypoint: ");
       Serial.println(parsedCoord);
@@ -1481,6 +1741,7 @@ void chkForCMDInput() {
         // For exiting current mode
         // If recording, close files and cleanup
         if ((currMode == MANUAL_REC) || (currMode == AUTO_REC)) {
+          recordWaypoint();
           tripFile.close();
         }
         currMode = NONE;
@@ -1493,6 +1754,7 @@ void chkForCMDInput() {
         // For manually recording waypoints
         queueVoiceResponse(43);                                          // say "Star"
         recordWaypoint();
+        vruWayPointRecorded();
         break;
       case '#':
         queueVoiceResponse(44);                                          // say "Pound"
@@ -1925,7 +2187,7 @@ void setup() {
     delay(250);
     }
 //  trace = false;
-  configRogerCMD();
+//configRogerCMD();
 }
 //
 //
@@ -1937,7 +2199,7 @@ void loop() {
 //  testBLECom();
 //  testCellCom();
   chkForCMDInput();
-  getRogerNAVData();
+//  getRogerNAVData();
   autoRecordWaypoint();
   computeTripInfo();
   checkTripComplete();
@@ -1947,4 +2209,5 @@ void loop() {
 }
 //
 //
+
 
