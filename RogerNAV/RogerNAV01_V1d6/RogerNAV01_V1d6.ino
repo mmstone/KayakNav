@@ -273,7 +273,7 @@ void parseAndStoreNAVData() {
     }
   getHeadingInfo();
   parseGPSData();                          // Parse GPS data
-  if ((millis() - timer) > 1000) {         // approximately every 1 second or so, get and store/print out the current dasta
+  if ((millis() - timer) > 950) {          // approximately every 1 second or so, get and store/print out the current dasta
     timer = millis();                      // reset the timer
     loadGPSData();                         // Load GPS data
     if (gpsFix) {
@@ -297,9 +297,13 @@ void parseAndStoreNAVData() {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 void loadGPSData() {
-  uint8_t gfq = GPS.fixquality;                   //  set up an interger to store the GPS fix quality value
-  if (gfq == 0) {                                 //  check to see if the data quality value is equal to zero
+  uint8_t gpsQualHold = GPS.fixquality;
+  if ((gpsQualHold < 1) || (gpsQualHold > 2)) {   //  check to see if the data quality value is not equal to 1 or 2
     return;                                       //  if so, then don't refresh the data in global storage and exit this routine       
+    }
+  float gpsLatitudeHold  = GPS.latitude;
+  if (gpsLatitudeHold < 1.00) {                   //  temporary code to reduce data errors  Not for use within 66 miles of north pole!
+    return;
     }
   navHour = GPS.hour;
   navMinute = GPS.minute;
@@ -308,9 +312,10 @@ void loadGPSData() {
   navMonth = GPS.month;
   navDay = GPS.day;
   navYear = GPS.year;
-  gpsFix = GPS.fix;
-  gpsQual = GPS.fixquality;
-  if (gpsFix) {
+  uint8_t gpsFixHold = GPS.fix;
+  if (gpsFixHold) {
+    gpsFix       = GPS.fix;
+    gpsQual      = GPS.fixquality;
     gpsLatitude  = GPS.latitude;
     gpsLat       = GPS.lat;
     gpsLongitude = GPS.longitude;
