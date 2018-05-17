@@ -33,6 +33,8 @@ extern "C" {
 #include <TI_TCA9548A.h>
 #include "RTClib.h"
 #include <QueueArray.h>
+#include <MemoryFree.h>
+#include <ArduinoJson.h>
 //
 //
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -50,9 +52,10 @@ extern "C" {
 #define PLAYBACK_INT_MS         3000         // 3 sec interval for computing course during playback
 #define BLE_WAIT_MS             250          // Time to wait for BLE response n ms
 #define TRIP_COMPLETE_INT_MS    10000        // 10 sec interval to let user know trip is complete
-#define MODEM_INIT_WAIT         10000        // Time for modem to initialize
+#define MODEM_INIT_WAIT         17000        // Time for modem to initialize
 #define WAYPOINTS_INIT_LEN      200
 #define WAYPOINT_PAGES          10
+#define LOC_UPDATE_INT          10000
 //
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -75,6 +78,7 @@ File playbackFile;
 byte effect            = 1;
 char keyPadInput       = ' ';
 uint32_t timer         = millis();     // unsigned 32bit interger variable called timer assigned to the millisecond function
+uint32_t timer2        = millis();
 uint32_t tripRecSeq    = 0;            // used to sequence the record numbers in the log file
 uint16_t voiceRec      = 0;            // number being sent to VRU for voice playback
 uint8_t navHour        = 0;            // current UCT (GMT) hour data from GPS
@@ -209,6 +213,7 @@ Mode currMode = NONE;
 String numpadEntry = "";
 String currentString = "";
 String modemResponse = "";
+String iccid = "";
 PlaybackStep currPlaybackStep = SELECT_FILE;
 QueueArray<Waypoint> wayPointQueue;
 //Waypoint waypoints[WAYPOINTS_INIT_LEN];
@@ -219,10 +224,18 @@ int totalWaypoints = 0;
 uint32_t filePos = 0;
 Waypoint startingWaypoints[WAYPOINT_PAGES];
 Waypoint currWaypoint;
+float currHeading = 0;
 int startingWaypointsInd = 0;
 int totalWaypointsInd = 0;
 int numWaypointPages = 0;
 
+uint8_t *heapptr, *stackptr;
+void check_mem() {
+  stackptr = (uint8_t *)malloc(4);          // use stackptr temporarily
+  heapptr = stackptr;                     // save value of heap pointer
+  free(stackptr);      // free up the memory again (sets stackptr to 0)
+  stackptr =  (uint8_t *)(SP);           // save value of stack pointer
+}
 //
 //
 //
@@ -1095,12 +1108,17 @@ void computeTripInfo() {
       uint32_t elapsedTime = 0;
       String bleResp = "";
       bleCentral.println('o');
+      bleCentral.flush();
       do {
-        while (bleCentral.available()) {
+        if (bleCentral.available()) {
           bleResp += (char)bleCentral.read();
         }
         elapsedTime = millis() - currTime2;
       } while (elapsedTime < BLE_WAIT_MS); // Wait for 200ms max
+
+      while (bleCentral.available()) {
+        Serial.print(bleCentral.read());
+      }
 
       float latDeg = 0.0;
       float lonDeg = 0.0;
@@ -1135,14 +1153,26 @@ void computeTripInfo() {
       elapsedTime = 0;
       bleResp = "";
       bleCentral.println('H');
+      //Serial.println("here1");
+      bleCentral.flush();
+      //Serial.println("here2");
       do {
-        while (bleCentral.available()) {
+        if (bleCentral.available()) {
           bleResp += (char)bleCentral.read();
         }
         elapsedTime = millis() - currTime2;
       } while (elapsedTime < BLE_WAIT_MS); // Wait for 200ms max
+      //Serial.println("here3");
+      Serial.println(bleResp);
 
-      float currHeading = parseHeading(bleResp);
+      while (bleCentral.available()) {
+        Serial.print(bleCentral.read());
+      }
+      //Serial.println("here4");
+      Serial.println(bleResp);
+
+      currHeading = parseHeading(bleResp);
+      //Serial.println("here5");
       Serial.print("Heading: ");
       Serial.print(currHeading);
       Serial.print(", ");
@@ -1160,11 +1190,13 @@ void computeTripInfo() {
         if (totalWaypointsInd == totalWaypoints) {
           currPlaybackStep = COMPLETE;
           playbackFile.close();
+          //WaitForResponse("+++", "OK", 1000, modemResponse, 0);
           vruTripComplete();
           Serial.println("Trip complete!");
           return;
         }
       }
+
       Serial.println();
     }
   }
@@ -1422,6 +1454,7 @@ void confirmAction() {
   }
   else if ((currMode == PLAYBACK) && (currPlaybackStep == WAYPOINTS_LOADED)) {
     currPlaybackStep = IN_PROGRESS;
+    //WaitForResponse("AT#SO=1\r", "CONNECT", 1000, modemResponse, 0);
     vruTripPlayStart();
   }
 }
@@ -1622,7 +1655,7 @@ void recordWaypoint() {
       elapsedTime = millis() - currTime;
     } while (elapsedTime < BLE_WAIT_MS); // Wait for 200ms max
 
-    float currHeading = parseHeading(bleResp);
+    currHeading = parseHeading(bleResp);
     Serial.print("Heading: ");
     Serial.println(currHeading);
 
@@ -1747,6 +1780,9 @@ void chkForCMDInput() {
         currMode = NONE;
         currPlaybackStep = SELECT_FILE;
         numpadEntry = "";
+        currWaypoint.gpsLonDeg = 0.0;
+        currWaypoint.gpsLatDeg = 0.0;
+        currHeading = 0.0;
         Serial.println("Mode reset");
         vruMainMenu();        
         break;
@@ -1765,6 +1801,43 @@ void chkForCMDInput() {
   }
 }
 
+void sendLocationToFlow()
+{
+  uint32_t currTime = millis();
+  if ((currTime - timer2) >= LOC_UPDATE_INT) {
+    timer2 = currTime;
+    
+    if ((currWaypoint.gpsLonDeg != 0.0) && (currWaypoint.gpsLatDeg != 0.0)) {
+      if ((currHeading > 0.0) && connectionGood) {
+        StaticJsonBuffer<100> jsonBuffer;
+        JsonObject& root = jsonBuffer.createObject();
+        root["iccid"] = iccid;
+        root["lon"] = RawJson(String(currWaypoint.gpsLonDeg, 6));
+        root["lat"] = RawJson(String(currWaypoint.gpsLatDeg, 6));
+        root["heading"] = heading;
+
+        char buff[root.measureLength() + 1];
+        root.printTo(buff, sizeof(buff));
+        String strBuff(buff);
+        strBuff += "\n";
+
+        String http_command = "POST " + (String)"/dd596c7308855/dc1280f4be05/4e543e946806914/in/flow/updateLocation" + " HTTP/1.1\r\n" +
+        "Host: runm-east.att.io\r\n" +
+        "Content-Type: application/json\r\n" +
+        "Content-Length: " + strBuff.length() + "\r\n\r\n" + strBuff;
+
+        WaitForResponse(http_command, "200 OK", 1000, modemResponse, 0);
+      }
+    }
+  }
+}
+
+String parseICCID(String modemResp)
+{
+  int startInd = modemResp.indexOf(':') + 2;
+  return modemResp.substring(startInd, startInd+20);
+}
+
 void checkModem() {
   if (!modemReady) {
     if (millis() > MODEM_INIT_WAIT) {
@@ -1781,32 +1854,35 @@ void checkModem() {
       Serial.println("Check baud rate");
       WaitForResponse("AT+IPR?\r", "OK", 1000, modemResponse, 0);
 
-      //Serial.println("Enable SIM detect");
-      //WaitForResponse("AT#SIMDET=1\r", "OK", 1000, modemResponse, 0);
+      Serial.println("Enable SIM detect");
+      WaitForResponse("AT#SIMDET=1\r", "OK", 1000, modemResponse, 0);
+
+      Serial.println("Get ICCID");
+      WaitForResponse("AT#CCID\r", "OK", 1000, modemResponse, 0);
+      iccid = parseICCID(modemResponse);
+
+      WaitForResponse("AT#SCFG=1,1,1000,65535,600,50\r", "OK", 1000, modemResponse, 0);
+      
+      WaitForResponse("AT#SGACT=1,0\r", "OK", 1000, modemResponse, 0);
 
       Serial.println("Setup PDP");
       WaitForResponse("AT+CGDCONT=1,\"IP\",\"m2m.com.attz\"\r", "OK", 1000, modemResponse, 0);
-      WaitForResponse("AT%PDNSET=1,\"m2m.com.attz\",\"IP\"\r", "OK", 1000, modemResponse, 0);
+      //WaitForResponse("AT%PDNSET=1,\"m2m.com.attz\",\"IP\"\r", "OK", 1000, modemResponse, 0);
+      delay(5000);
       
       Serial.println("Check signal strength");
-      WaitForResponse("AT+CSQ\r", "OK", 500, modemResponse, 0);
+      WaitForResponse("AT+CSQ\r", "OK", 1000, modemResponse, 0);
 
       //Serial.println("Check firmware version");
       //WaitForResponse("AT+CGMR\r", "OK", 500, modemResponse, 0);
 
-      //Serial.println("Get IP address");
-      //WaitForResponse("AT#SGACT=1,1\r", "OK", 500, modemResponse, 0);
-      Serial.println("Start internet service");
-      WaitForResponse("AT@INTERNET=1\r", "OK", 500, modemResponse, 0);
-
-      WaitForResponse("AT@SOCKDIAL=1\r", "OK", 500, modemResponse, 0);
-      WaitForResponse("AT@DNSRESVDON=\"runm-central.att.io\"\r", "OK", 500, modemResponse, 0);
-
-      /*
+      Serial.println("Get IP");
+      WaitForResponse("AT#SGACT=1,1\r", "OK", 3000, modemResponse, 0);
+      
       Serial.println("Waiting for network connection");
       while(!connectionGood)
       {
-        cellSerial.print("AT+CEREG?\r");
+        cellSerial.print("AT+CGREG?\r");
         currentString = "";
         delay(1000);
         
@@ -1831,7 +1907,8 @@ void checkModem() {
           }
         }
       }
-      */
+      WaitForResponse("AT#SD=1,0,80,\"runm-east.att.io\",0,1,0\r", "CONNECT", 3000, modemResponse, 0);
+      
     }
   }
 }
@@ -2195,7 +2272,8 @@ void setup() {
 //
 void loop() {
 //  testVRUCom();
-//  checkModem();
+  checkModem();
+  sendLocationToFlow();
 //  testBLECom();
 //  testCellCom();
   chkForCMDInput();
