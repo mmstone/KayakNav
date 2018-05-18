@@ -174,8 +174,6 @@ boolean connectionGood    = false;
 char daysOfTheWeek[7][12] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
 char filename[15] = "CMDT0000.TXT";
 //
-String inputString     = "";           // a string to hold incoming heading data.  Space is allocated in the setup function
-//
 //
 //
 Keypad cmdKeyPad = Keypad(makeKeymap(keys), rowPins, colPins, ROWS, COLS);
@@ -2259,7 +2257,6 @@ void chkHapticDrv() {
 void setup() {
   configSerialPorts();               // initialize serial:
   configIOPins();                    // configure the IO pins
-  inputString.reserve(BUFSIZE);      // reserve 256 bytes for the inputString:
   checkForRTC();                     // Check for an RTC
   delay(250);
   sdCardInit();                      // initialize the SD card
@@ -2273,6 +2270,7 @@ void setup() {
     }
 //  trace = false;
 //configRogerCMD();
+  wdt_enable(WDTO_8S);
 }
 //
 //
@@ -2289,6 +2287,7 @@ void loop() {
   autoRecordWaypoint();
   computeTripInfo();
   checkTripComplete();
+  wdt_reset();
 //  provideHapticFeedback();
 //  sendVoiceResponse();
 //
