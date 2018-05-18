@@ -1646,8 +1646,8 @@ void recordWaypoint() {
     float lonDeg = 0.0;
     String parsedCoord = parseGPSString(bleResp, &latDeg, &lonDeg);
 
-    currWaypoint.gpsLatDeg = 29.55;
-    currWaypoint.gpsLonDeg = -95.38;
+    //currWaypoint.gpsLatDeg = 29.55;
+    //currWaypoint.gpsLonDeg = -95.38;
 
     // Get current heading
     currTime = millis();
@@ -1964,6 +1964,7 @@ bool SendModemCommand(String command, String expectedResp, int msToWait, String&
       ConsumeModemResponse();    
       connectionGood = false;
       modemReady = false;
+      delay(100);
     }
   }
   respOut = resp;
