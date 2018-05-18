@@ -1877,18 +1877,15 @@ void checkModem() {
 
       //Serial.println("Check firmware version");
       //WaitForResponse("AT+CGMR\r", "OK", 500, modemResponse, 0);
-
-      Serial.println("Get IP");
-      WaitForResponse("AT#SGACT=1,1\r", "OK", 500, modemResponse, 0);
       modemReady = true;
-      ///WaitForResponse("+++", "OK", 1000, modemResponse, 0);
+      //WaitForResponse("+++", "OK", 1000, modemResponse, 0);
     }
     else if (!connectionGood) {
       //Serial.println("Waiting for network connection");
       cellSerial.print("AT+CGREG?\r");
       cellSerial.flush();
       currentString = "";
-      delay(500);
+      delay(250);
       
       // Read cellSerial port buffer1 for UART connected to modem and print that message back out to debug cellSerial over USB
       while(cellSerial.available() > 0) 
@@ -1905,10 +1902,14 @@ void checkModem() {
         if((currentString.substring(currentString.length()-3, currentString.length()) == "0,1") || 
            (currentString.substring(currentString.length()-3, currentString.length()) == "0,5"))
         {
-          connectionGood = true;
           while(PrintModemResponse() > 0);  // consume rest of message once 0,1 or 0,5 is found
-          
-          WaitForResponse("AT#SD=1,0,80,\"runm-east.att.io\",0,1,0\r", "CONNECT", 1000, modemResponse, 0);
+
+          Serial.println("Get IP");
+          if (WaitForResponse("AT#SGACT=1,1\r", "OK", 3000, modemResponse, 0)) {
+            if (WaitForResponse("AT#SD=1,0,80,\"runm-east.att.io\",0,1,0\r", "CONNECT", 1000, modemResponse, 0)) {
+              connectionGood = true;
+            }
+          }
         }
       }
     }
@@ -1970,12 +1971,14 @@ bool SendModemCommand(String command, String expectedResp, int msToWait, String&
 }
 
 // repeatedly sends command to the modem until correct response is received
-void WaitForResponse(String command, String expectedResp, int msToWait, String& respOut, byte b)
+bool WaitForResponse(String command, String expectedResp, int msToWait, String& respOut, byte b)
 {
   bool isExpectedResp;
   isExpectedResp = SendModemCommand(command, expectedResp, msToWait, respOut, b);
   Serial.println(respOut);
   ConsumeModemResponse();   // just in case any characters remain in RX buffer
+  
+  return isExpectedResp;
 }
 
 // empty read buffer 
