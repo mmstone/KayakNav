@@ -252,7 +252,7 @@ void playAll() {
 //
 void playRight() {
   queueVoiceResponse(66);                       //   Right
-  delay(200);
+  delay(300);
   if (trace) {
     Serial.print("Right Effect #");
     Serial.println(effect);
@@ -267,7 +267,7 @@ void playRight() {
 //
 void playLeft() {
   queueVoiceResponse(67);                        //  Left
-  delay(200);
+  delay(300);
   if (trace) {
     Serial.print("Left Effect #");
     Serial.println(effect);
@@ -433,23 +433,14 @@ void queueVoiceResponse(uint8_t vRec ) {
 //
 //
 //
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//
-void sendVoiceResponse() {
-
-
-
-}
-//
-//
-//
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 void vruMainMenu() {
   delay(2000);
   queueVoiceResponse(168);                        //  Main Menu
+  delay(200);
   queueVoiceResponse(169);
-  delay(3000);
+  delay(2000);
   vruPressA();
   vruPressB();
   vruPressC();
@@ -460,90 +451,108 @@ void vruMainMenu() {
 //
 void vruPressA() {  
   queueVoiceResponse(42);                        //  Press 'A'
-  queueVoiceResponse(30);
   delay(200);
+  queueVoiceResponse(30);
+  delay(300);
   queueVoiceResponse(4);                        //   For Manual Recording
+  delay(200);
   queueVoiceResponse(63);
+  delay(300);
   queueVoiceResponse(186);
-  delay(3000);
+  delay(2500);
 }
 //
 //
 //
 void vruPressB() {
   queueVoiceResponse(42);                        //  Press 'B'
-  queueVoiceResponse(31);
   delay(200);
+  queueVoiceResponse(31);
+  delay(300);
   queueVoiceResponse(4);                        //   For Auto Recording
+  delay(300);
   queueVoiceResponse(173);
+  delay(300);
   queueVoiceResponse(186);
-  delay(3000);
+  delay(2500);
 }
 //
 //
 //
 void vruPressC() { 
   queueVoiceResponse(42);                        //  Press 'C' to
+  delay(200);
   queueVoiceResponse(32);
+  delay(300);
   queueVoiceResponse(2);                        
   delay(200);
   queueVoiceResponse(61);                        //   Play 
+  delay(300);
   queueVoiceResponse(68);                        //   Back 
   delay(200);
   queueVoiceResponse(30);                        //   A Trip File 
+  delay(300);
   queueVoiceResponse(62);
+  delay(300);
   queueVoiceResponse(160);
-  delay(3500);
+  delay(2500);
 }
 //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 void vruPressD()  {  
   queueVoiceResponse(42);                        //  Press 'D' To
+  delay(200);
   queueVoiceResponse(33);
-  delay(200);
+  delay(300);
   queueVoiceResponse(2);                        
-  queueVoiceResponse(57);                        //  End current mode
   delay(200);
+  queueVoiceResponse(57);                       //  End current mode
+  delay(300);
   queueVoiceResponse(184);
+  delay(300);
   queueVoiceResponse(171);                        
-  delay(200);
-  queueVoiceResponse(134);                        //  And Return To
+  delay(500);
+  queueVoiceResponse(134);                      //  And Return To
+  delay(200);   
   queueVoiceResponse(156);
   delay(300);   
   queueVoiceResponse(2);                        
-  delay(200);   
-  queueVoiceResponse(158);                       //  The Main Menu    
-  delay(200);                    
+  delay(300);
+  queueVoiceResponse(158);                     //  The Main Menu    
+  delay(300);                    
   queueVoiceResponse(168); 
-  delay(300);  
+  delay(400);  
   queueVoiceResponse(169);
-  delay(3000);
+  delay(2500);
 }
 //
 //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 void vruManRecMode() {
-  delay(1000);
+  delay(1500);
   queueVoiceResponse(76);                 //  starting manual recording
-  delay(200);
+  delay(400);
   queueVoiceResponse(63);
-  delay(200);
+  delay(300);
   queueVoiceResponse(186);
   delay(2000);
   queueVoiceResponse(42);                //  Press Star to                         
+  delay(200);
   queueVoiceResponse(43); 
-  delay(200);
+  delay(300);
   queueVoiceResponse(2);
+  delay(200);
   queueVoiceResponse(60);                //  Record a Waypoint                         
-  delay(200);
+  delay(300);
   queueVoiceResponse(30); 
-  queueVoiceResponse(55);  
   delay(200);
+  queueVoiceResponse(55);  
+  delay(300);
   queueVoiceResponse(40);
-  delay(3500);
-  vruPressD();                           // Press D routine
+  delay(2500);
+//  vruPressD();                           // Press D routine
 }
 //
 //
@@ -552,12 +561,12 @@ void vruManRecMode() {
 void vruAutoRecMode() {
   delay(1000);
   queueVoiceResponse(76);                 //  starting auto recording
-  delay(200);
+  delay(400);
   queueVoiceResponse(173);
   delay(200);
   queueVoiceResponse(186);
   delay(2500);
-  vruPressD();                           // Press D routine
+//  vruPressD();                           // Press D routine
 }
 //
 //
@@ -568,22 +577,25 @@ void vruPlayTripMode() {
   queueVoiceResponse(2);                    // To load trip file 
   delay(200);
   queueVoiceResponse(191);                 
-  delay(400);
+  delay(300);
   queueVoiceResponse(62);
-  queueVoiceResponse(160);
   delay(200);
+  queueVoiceResponse(160);
+  delay(400);
   queueVoiceResponse(45);                   //  Enter two digit file number
   delay(300);
   queueVoiceResponse(2);
   delay(200);
   queueVoiceResponse(190);
-  delay(250);
+  delay(400);
   queueVoiceResponse(160);
-  queueVoiceResponse(34);    
   delay(300);
+  queueVoiceResponse(34);    
+  delay(400);
   queueVoiceResponse(134);                  //  and press # 
   delay(200);
   queueVoiceResponse(42);                 
+  delay(200);
   queueVoiceResponse(44);
   delay(1500);
 //  vruPressD();                              // Press D routine
@@ -594,18 +606,21 @@ void vruPlayTripMode() {
 void vruPressPoundAgain() {
   delay(2000); 
   queueVoiceResponse(42);                   //  Press # again to start trip playback.              
+  delay(200);
   queueVoiceResponse(44);
   delay(200);
   queueVoiceResponse(192);
-  delay(300);
-  queueVoiceResponse(2);                 
   delay(400);
+  queueVoiceResponse(2);                 
+  delay(200);
   queueVoiceResponse(58);
+  delay(200);
   queueVoiceResponse(62);
-  delay(750);
+  delay(500);
   queueVoiceResponse(61);
+  delay(200);
   queueVoiceResponse(68); 
-  delay(1000);
+  delay(2500);
 //  vruPressD();                              // Press D routine
 }
 //
@@ -613,38 +628,41 @@ void vruPressPoundAgain() {
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 void vruWayPointRecorded() {
-  delay(1000);
+//  delay(1000);
   queueVoiceResponse(186);               //  Recording Way point
+  delay(400);
   queueVoiceResponse(55);
-  delay(200);
+  delay(300);
   queueVoiceResponse(40);
-  delay(200);
+//  delay(200);
 }
 //
 //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 void vruWayPointReached() {
-  delay(1000);
+//  delay(1000);
   queueVoiceResponse(55);
-  delay(200);
+  delay(300);
   queueVoiceResponse(40);
-  delay(200);
+  delay(300);
   queueVoiceResponse(177);               //  Way point good
-  delay(500);
+//  delay(500);
 }
 //
 //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 void vruTripPlayStart() {
-  delay(2000);
+  delay(1000);
   queueVoiceResponse(76);                 //  starting trip file playback
-  delay(300);
+  delay(400);
   queueVoiceResponse(62);
+  delay(200);
   queueVoiceResponse(160);
   delay(300);
   queueVoiceResponse(61);
+  delay(200);
   queueVoiceResponse(68); 
   delay(1500);              
 }
@@ -653,12 +671,13 @@ void vruTripPlayStart() {
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 void vruTripFileReady() {
-  delay(2000);
+  delay(1000);
   queueVoiceResponse(62);                   //  trip file ready
+  delay(200);
   queueVoiceResponse(160);
   delay(300);
   queueVoiceResponse(185);
-  delay(500);              
+  delay(1000);              
   vruPressPoundAgain();
   delay(500);              
 //  vruPressD();                              // Press D routine
@@ -670,7 +689,7 @@ void vruTripFileReady() {
 void vruTripComplete() {
   delay(1000);
   queueVoiceResponse(78);                    // you have arrived
-  delay(3500);   
+  delay(2500);   
 }
 //
 //
@@ -679,12 +698,13 @@ void vruTripComplete() {
 void vruTripFileLoadErr() {
   delay(1000);
   queueVoiceResponse(62);                   //  trip file load error
+  delay(200);
   queueVoiceResponse(160);
   delay(300);
   queueVoiceResponse(191);
   delay(300);
   queueVoiceResponse(107);
-  delay(3500);
+  delay(2500);
 }
 //
 //
@@ -693,10 +713,11 @@ void vruTripFileLoadErr() {
 void vruTripFileNumErr() {
   delay(1000);
   queueVoiceResponse(62);                   //  trip file number error
+  delay(200);
   queueVoiceResponse(160);
   delay(300);
   queueVoiceResponse(34);
-  delay(300);
+  delay(400);
   queueVoiceResponse(107);
   delay(3500);
 }
@@ -707,11 +728,11 @@ void vruTripFileNumErr() {
 void vruEmptyWayPoint() {
   delay(1000);
   queueVoiceResponse(183);                   //  skipped recording way point
-  delay(300);
+  delay(400);
   queueVoiceResponse(186);
-  delay(300);
+  delay(400);
   queueVoiceResponse(55);
-  delay(200);
+  delay(300);
   queueVoiceResponse(40);
   delay(2500);
 }
@@ -722,7 +743,7 @@ void vruEmptyWayPoint() {
 void vruNotRecordingMode() {
   delay(1000);
   queueVoiceResponse(186);                   //  Recording Mode Error. 
-  delay(300);
+  delay(400);
   queueVoiceResponse(171);
   delay(200);
   queueVoiceResponse(107);
@@ -737,7 +758,7 @@ void vruSayFileNumber() {
   queueVoiceResponse(160);                   //  File Number is  
   delay(200);
   queueVoiceResponse(34);
-  delay(300);
+  delay(400);
   queueVoiceResponse(172);
   delay(200);
   int fn = (filename[6] - 48);
@@ -1939,9 +1960,11 @@ void chkForNAVServer() {
   int bleConnectCount = 0;
   do {
     queueVoiceResponse(175);                          // connecting to the nav server
+    delay(400);
     queueVoiceResponse(2);
     delay(100);
     queueVoiceResponse(158);
+    delay(200);
     queueVoiceResponse(174);
     delay(500);
     currTime3 = millis();
@@ -1975,14 +1998,17 @@ void chkForNAVServer() {
   delay(2000);
   if (navConnected) {
     queueVoiceResponse(176);                            //  Connected to ROGERNAV
+    delay(200);
     queueVoiceResponse(2);
     delay(100);
     queueVoiceResponse(133);
     } else {
     queueVoiceResponse(182);                            //   Bypassed Connecting to ROGERNAV
+    delay(200);
     queueVoiceResponse(175);
     delay(100);
     queueVoiceResponse(2);
+    delay(200);
     queueVoiceResponse(133);
   }
   delay(1000);
@@ -1993,9 +2019,11 @@ void chkForNAVServer() {
 //
 void kbdVRUHapticCheck() {
   queueVoiceResponse(42);                       //   Press
+  delay(200);
   queueVoiceResponse(1);                        //   One (1)
   delay(100);
   queueVoiceResponse(4);                        //   For (or 4)
+  delay(200);
   queueVoiceResponse(67);                       //   Left
   do {
     chkForCMDInput();
@@ -2007,9 +2035,11 @@ void kbdVRUHapticCheck() {
     }
   delay(500);
   queueVoiceResponse(42);                       //   Press
+  delay(200);
   queueVoiceResponse(3);                        //   Three (3)
   delay(100);
   queueVoiceResponse(4);                        //   For (or 4)
+  delay(200);
   queueVoiceResponse(66);                       //   Right
   do {
     chkForCMDInput();
@@ -2023,6 +2053,7 @@ void kbdVRUHapticCheck() {
   queueVoiceResponse(135);                       //   Congratulations
   delay(2000);
   queueVoiceResponse(104);                       //   System
+  delay(100);
   queueVoiceResponse(46);                        //   On
   delay(1500);
 }
@@ -2187,7 +2218,7 @@ void setup() {
     delay(250);
     }
 //  trace = false;
-//configRogerCMD();
+  configRogerCMD();
 }
 //
 //
@@ -2204,7 +2235,6 @@ void loop() {
   computeTripInfo();
   checkTripComplete();
 //  provideHapticFeedback();
-//  sendVoiceResponse();
 //
 }
 //
