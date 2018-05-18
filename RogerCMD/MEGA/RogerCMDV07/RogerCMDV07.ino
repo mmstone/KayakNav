@@ -2273,7 +2273,7 @@ void setup() {
     }
 //  trace = false;
 //configRogerCMD();
-  wdt_enable(WDTO_8S);
+  //wdt_enable(WDTO_8S);
 }
 //
 //
@@ -2290,7 +2290,7 @@ void loop() {
   autoRecordWaypoint();
   computeTripInfo();
   checkTripComplete();
-  wdt_reset();
+  //wdt_reset();
 //  provideHapticFeedback();
 //  sendVoiceResponse();
 //
