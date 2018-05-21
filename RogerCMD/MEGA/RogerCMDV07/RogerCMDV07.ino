@@ -75,7 +75,7 @@ File playbackFile;
 //
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //  global data/variables
-byte effect            = 1;
+byte effect            = 109;          // effect requested by Ahmet
 char keyPadInput       = ' ';
 uint32_t timer         = millis();     // unsigned 32bit interger variable called timer assigned to the millisecond function
 uint32_t timer2        = millis();
@@ -262,31 +262,30 @@ void playAll() {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 void playRight() {
-  delay(250);
   queueVoiceResponse(66);                       //   Right
+  delay(200);
   if (trace) {
     Serial.print("Right Effect #");
     Serial.println(effect);
     }
   tcaSelect(0);                                 // Right Side
-  delay(150);
   playBuzzer();
-
+  delay(200);
 }
 //
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 void playLeft() {
-  delay(250);
   queueVoiceResponse(67);                        //  Left
+  delay(200);
   if (trace) {
     Serial.print("Left Effect #");
     Serial.println(effect);
     }
   tcaSelect(1);
-  delay(150);
   playBuzzer();
+  delay(200);
 }
 //
 //
@@ -320,7 +319,7 @@ void readyBuzz() {
   for (int a = 0; a < 3; a++) {
     playAll();
     }
-  effect = 1;
+//  effect = 1;
 }
 //
 //
