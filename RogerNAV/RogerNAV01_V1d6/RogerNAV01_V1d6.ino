@@ -288,7 +288,7 @@ void parseAndStoreNAVData() {
       digitalWrite(sysLED, LOW);
     } else {
       digitalWrite(gpsLock, LOW);
-      sounder(100);   
+      //sounder(100);   
     }
   }
 }
