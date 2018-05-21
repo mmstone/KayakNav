@@ -52,7 +52,7 @@ extern "C" {
 #define PLAYBACK_INT_MS         3000         // 3 sec interval for computing course during playback
 #define BLE_WAIT_MS             250          // Time to wait for BLE response n ms
 #define TRIP_COMPLETE_INT_MS    10000        // 10 sec interval to let user know trip is complete
-#define MODEM_INIT_WAIT         17000        // Time for modem to initialize
+#define MODEM_INIT_WAIT         3000         // Time for modem to initialize
 #define WAYPOINTS_INIT_LEN      200
 #define WAYPOINT_PAGES          10
 #define LOC_UPDATE_INT          10000
@@ -174,8 +174,6 @@ boolean connectionGood    = false;
 char daysOfTheWeek[7][12] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
 char filename[15] = "CMDT0000.TXT";
 //
-String inputString     = "";           // a string to hold incoming heading data.  Space is allocated in the setup function
-//
 //
 //
 Keypad cmdKeyPad = Keypad(makeKeymap(keys), rowPins, colPins, ROWS, COLS);
@@ -264,30 +262,31 @@ void playAll() {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 void playRight() {
+  delay(250);
   queueVoiceResponse(66);                       //   Right
-  delay(300);
   if (trace) {
     Serial.print("Right Effect #");
     Serial.println(effect);
     }
   tcaSelect(0);                                 // Right Side
+  delay(150);
   playBuzzer();
-  delay(200);
+
 }
 //
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 void playLeft() {
+  delay(250);
   queueVoiceResponse(67);                        //  Left
-  delay(300);
   if (trace) {
     Serial.print("Left Effect #");
     Serial.println(effect);
     }
   tcaSelect(1);
+  delay(150);
   playBuzzer();
-  delay(200);
 }
 //
 //
@@ -438,10 +437,10 @@ void sdCardOpenNext() {
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 void queueVoiceResponse(uint8_t vRec ) {
-  vruSerial.print('Q');
+  vruSerial.print("Q = ");
   vruSerial.print(vRec, DEC);
   vruSerial.println(';');
-  delay(45);
+  delay(50);
 }
 //
 //
@@ -449,337 +448,143 @@ void queueVoiceResponse(uint8_t vRec ) {
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 void vruMainMenu() {
-  delay(2000);
-  queueVoiceResponse(168);                        //  Main Menu
   delay(200);
-  queueVoiceResponse(169);
-  delay(2000);
-  vruPressA();
-  vruPressB();
-  vruPressC();
-  vruPressD();
+  queueVoiceResponse(193);                        //  Main Menu, Press A for Manual Recording, Press B for Auto Recording, Press C to play
+  delay(200);                                    //  back a trip file, press D to end current mode and return to the Main Menu
 }
 // 
-//
-//
-void vruPressA() {  
-  queueVoiceResponse(42);                        //  Press 'A'
-  delay(200);
-  queueVoiceResponse(30);
-  delay(300);
-  queueVoiceResponse(4);                        //   For Manual Recording
-  delay(200);
-  queueVoiceResponse(63);
-  delay(300);
-  queueVoiceResponse(186);
-  delay(2500);
-}
-//
-//
-//
-void vruPressB() {
-  queueVoiceResponse(42);                        //  Press 'B'
-  delay(200);
-  queueVoiceResponse(31);
-  delay(300);
-  queueVoiceResponse(4);                        //   For Auto Recording
-  delay(300);
-  queueVoiceResponse(173);
-  delay(300);
-  queueVoiceResponse(186);
-  delay(2500);
-}
-//
-//
-//
-void vruPressC() { 
-  queueVoiceResponse(42);                        //  Press 'C' to
-  delay(200);
-  queueVoiceResponse(32);
-  delay(300);
-  queueVoiceResponse(2);                        
-  delay(200);
-  queueVoiceResponse(61);                        //   Play 
-  delay(300);
-  queueVoiceResponse(68);                        //   Back 
-  delay(200);
-  queueVoiceResponse(30);                        //   A Trip File 
-  delay(300);
-  queueVoiceResponse(62);
-  delay(300);
-  queueVoiceResponse(160);
-  delay(2500);
-}
-//
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//
-void vruPressD()  {  
-  queueVoiceResponse(42);                        //  Press 'D' To
-  delay(200);
-  queueVoiceResponse(33);
-  delay(300);
-  queueVoiceResponse(2);                        
-  delay(200);
-  queueVoiceResponse(57);                       //  End current mode
-  delay(300);
-  queueVoiceResponse(184);
-  delay(300);
-  queueVoiceResponse(171);                        
-  delay(500);
-  queueVoiceResponse(134);                      //  And Return To
-  delay(200);   
-  queueVoiceResponse(156);
-  delay(300);   
-  queueVoiceResponse(2);                        
-  delay(300);
-  queueVoiceResponse(158);                     //  The Main Menu    
-  delay(300);                    
-  queueVoiceResponse(168); 
-  delay(400);  
-  queueVoiceResponse(169);
-  delay(2500);
-}
-//
 //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 void vruManRecMode() {
-  delay(1500);
-  queueVoiceResponse(76);                 //  starting manual recording
-  delay(400);
-  queueVoiceResponse(63);
-  delay(300);
-  queueVoiceResponse(186);
-  delay(2000);
-  queueVoiceResponse(42);                //  Press Star to                         
   delay(200);
-  queueVoiceResponse(43); 
-  delay(300);
-  queueVoiceResponse(2);
+  queueVoiceResponse(194);                 //  starting manual recording
+  delay(1000);                             
+  queueVoiceResponse(195);                 //  Press Star to record a waypoint, Press D to end and return to the main menu
   delay(200);
-  queueVoiceResponse(60);                //  Record a Waypoint                         
-  delay(300);
-  queueVoiceResponse(30); 
-  delay(200);
-  queueVoiceResponse(55);  
-  delay(300);
-  queueVoiceResponse(40);
-  delay(2500);
-//  vruPressD();                           // Press D routine
 }
 //
 //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 void vruAutoRecMode() {
-  delay(1000);
-  queueVoiceResponse(76);                 //  starting auto recording
-  delay(400);
-  queueVoiceResponse(173);
   delay(200);
-  queueVoiceResponse(186);
-  delay(2500);
-//  vruPressD();                           // Press D routine
+  queueVoiceResponse(196);                 //  starting auto recording, Press D to end and return to the main menu
+  delay(200);
 }
 //
 //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 void vruPlayTripMode() {
-  delay(1500);
-  queueVoiceResponse(2);                    // To load trip file 
   delay(200);
-  queueVoiceResponse(191);                 
-  delay(300);
-  queueVoiceResponse(62);
+  queueVoiceResponse(197);                    // To load trip file enter the two digit file number and press pound (#)
   delay(200);
-  queueVoiceResponse(160);
-  delay(400);
-  queueVoiceResponse(45);                   //  Enter two digit file number
-  delay(300);
-  queueVoiceResponse(2);
-  delay(200);
-  queueVoiceResponse(190);
-  delay(400);
-  queueVoiceResponse(160);
-  delay(300);
-  queueVoiceResponse(34);    
-  delay(400);
-  queueVoiceResponse(134);                  //  and press # 
-  delay(200);
-  queueVoiceResponse(42);                 
-  delay(200);
-  queueVoiceResponse(44);
-  delay(1500);
-//  vruPressD();                              // Press D routine
 }
 //
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 void vruPressPoundAgain() {
-  delay(2000); 
-  queueVoiceResponse(42);                   //  Press # again to start trip playback.              
+  delay(200); 
+  queueVoiceResponse(198);                   //  Press # again to start trip playback, Press D to end and return to the main menu.              
   delay(200);
-  queueVoiceResponse(44);
-  delay(200);
-  queueVoiceResponse(192);
-  delay(400);
-  queueVoiceResponse(2);                 
-  delay(200);
-  queueVoiceResponse(58);
-  delay(200);
-  queueVoiceResponse(62);
-  delay(500);
-  queueVoiceResponse(61);
-  delay(200);
-  queueVoiceResponse(68); 
-  delay(2500);
-//  vruPressD();                              // Press D routine
 }
 //
 //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 void vruWayPointRecorded() {
-//  delay(1000);
-  queueVoiceResponse(186);               //  Recording Way point
-  delay(400);
-  queueVoiceResponse(55);
-  delay(300);
-  queueVoiceResponse(40);
-//  delay(200);
+  delay(200);
+  queueVoiceResponse(199);               //  Waypoint Recorded
+  delay(200);
 }
 //
 //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 void vruWayPointReached() {
-//  delay(1000);
-  queueVoiceResponse(55);
-  delay(300);
-  queueVoiceResponse(40);
-  delay(300);
-  queueVoiceResponse(177);               //  Way point good
-//  delay(500);
+  delay(200);
+  queueVoiceResponse(200);                // waypoint reached
+  delay(200);
 }
 //
 //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 void vruTripPlayStart() {
-  delay(1000);
-  queueVoiceResponse(76);                 //  starting trip file playback
-  delay(400);
-  queueVoiceResponse(62);
   delay(200);
-  queueVoiceResponse(160);
-  delay(300);
-  queueVoiceResponse(61);
-  delay(200);
-  queueVoiceResponse(68); 
-  delay(1500);              
+  queueVoiceResponse(201);                 //  starting trip file playback,  Press D to end and return to the main menu
+  delay(200);              
 }
 //
 //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 void vruTripFileReady() {
-  delay(1000);
-  queueVoiceResponse(62);                   //  trip file ready
   delay(200);
-  queueVoiceResponse(160);
-  delay(300);
-  queueVoiceResponse(185);
-  delay(1000);              
+  queueVoiceResponse(202);                   //  trip file loaded and ready to play
+  delay(500);
   vruPressPoundAgain();
-  delay(500);              
-//  vruPressD();                              // Press D routine
 }
 //
 //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 void vruTripComplete() {
-  delay(1000);
+  delay(200);
   queueVoiceResponse(78);                    // you have arrived
-  delay(2500);   
+  delay(200);   
 }
 //
 //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 void vruTripFileLoadErr() {
-  delay(1000);
-  queueVoiceResponse(62);                   //  trip file load error
   delay(200);
-  queueVoiceResponse(160);
-  delay(300);
-  queueVoiceResponse(191);
-  delay(300);
-  queueVoiceResponse(107);
-  delay(2500);
+  queueVoiceResponse(203);                   //  trip file load error
+  delay(200);
 }
 //
 //
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 void vruTripFileNumErr() {
-  delay(1000);
-  queueVoiceResponse(62);                   //  trip file number error
   delay(200);
-  queueVoiceResponse(160);
-  delay(300);
-  queueVoiceResponse(34);
-  delay(400);
-  queueVoiceResponse(107);
-  delay(3500);
+  queueVoiceResponse(204);                   //  trip file number error
+  delay(200);
 }
 //
 //
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 void vruEmptyWayPoint() {
-  delay(1000);
-  queueVoiceResponse(183);                   //  skipped recording way point
-  delay(400);
-  queueVoiceResponse(186);
-  delay(400);
-  queueVoiceResponse(55);
-  delay(300);
-  queueVoiceResponse(40);
-  delay(2500);
+  delay(200);
+  queueVoiceResponse(205);                   //  skipped recording way point
+  delay(200);
 }
 //
 //
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 void vruNotRecordingMode() {
-  delay(1000);
-  queueVoiceResponse(186);                   //  Recording Mode Error. 
-  delay(400);
-  queueVoiceResponse(171);
   delay(200);
-  queueVoiceResponse(107);
-  delay(2500);
+  queueVoiceResponse(206);                   //  Recording Mode Error. 
+  delay(200);
 }
 //
 //
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 void vruSayFileNumber() {
-  delay(1000);
-  queueVoiceResponse(160);                   //  File Number is  
-  delay(200);
-  queueVoiceResponse(34);
-  delay(400);
-  queueVoiceResponse(172);
-  delay(200);
+  delay(100);
+  queueVoiceResponse(207);                 //  File Number is 
+  delay(700);
   int fn = (filename[6] - 48);
   queueVoiceResponse(fn);
-  delay(200);
+  delay(300);
   fn = (filename[7] - 48);
   queueVoiceResponse(fn);
-  delay(2500);
+  delay(200);
 }
 //
 //
@@ -835,45 +640,6 @@ void computeDecimalDeg() {
   if (gpsLon == 'W') {
     decimalDegLon = (decimalDegLon * -1);
     }
-}
-//
-//
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//
-void chkBLE() {                           /* Check the BLE Central interface */
-  Serial.println(F("Checking the Bluefruit LE Central module: "));
-}
-//
-//
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//
-//
-void bleKBDDevOff() {
-
-
-
-
-}
-//
-//
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//
-void setNavName() {
-
-
-
-
-}
-//
-//
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//
-void setBLEdBm(int dBm) {
-
-
-
-
-
 }
 //
 //
@@ -1214,6 +980,9 @@ void computeTripInfo() {
           //WaitForResponse("+++", "OK", 1000, modemResponse, 0);
           vruTripComplete();
           Serial.println("Trip complete!");
+          currWaypoint.gpsLonDeg = 0.0;
+          currWaypoint.gpsLatDeg = 0.0;
+          currHeading = 0.0;
           return;
         }
       }
@@ -1664,6 +1433,9 @@ void recordWaypoint() {
     float lonDeg = 0.0;
     String parsedCoord = parseGPSString(bleResp, &latDeg, &lonDeg);
 
+    //currWaypoint.gpsLatDeg = 29.55;
+    //currWaypoint.gpsLonDeg = -95.38;
+
     // Get current heading
     currTime = millis();
     elapsedTime = 0;
@@ -1829,7 +1601,7 @@ void sendLocationToFlow()
     timer2 = currTime;
     
     if ((currWaypoint.gpsLonDeg != 0.0) && (currWaypoint.gpsLatDeg != 0.0)) {
-      if ((currHeading > 0.0) && connectionGood) {
+      if (connectionGood) {
         StaticJsonBuffer<100> jsonBuffer;
         JsonObject& root = jsonBuffer.createObject();
         root["iccid"] = iccid;
@@ -1860,76 +1632,75 @@ String parseICCID(String modemResp)
 }
 
 void checkModem() {
-  if (!modemReady) {
-    if (millis() > MODEM_INIT_WAIT) {
+  if (millis() > MODEM_INIT_WAIT) {
+    if (!modemReady) {
       Serial.println("Test AT command");
-      WaitForResponse("AT\r", "OK", 500, modemResponse, 0);
-      modemReady = true;
+      WaitForResponse("AT\r", "OK", 250, modemResponse, 0);
       
       Serial.println("Reseting modem");
-      WaitForResponse("ATZ\r", "OK", 500, modemResponse, 0);
+      WaitForResponse("ATZ\r", "OK", 250, modemResponse, 0);
 
       Serial.println("Turn on verbose error messages");
-      WaitForResponse("AT+CMEE=2\r", "OK", 1000, modemResponse, 0);
+      WaitForResponse("AT+CMEE=2\r", "OK", 250, modemResponse, 0);
 
-      Serial.println("Check baud rate");
-      WaitForResponse("AT+IPR?\r", "OK", 1000, modemResponse, 0);
+      //Serial.println("Check baud rate");
+      //WaitForResponse("AT+IPR?\r", "OK", 250, modemResponse, 0);
 
       Serial.println("Enable SIM detect");
-      WaitForResponse("AT#SIMDET=1\r", "OK", 1000, modemResponse, 0);
+      WaitForResponse("AT#SIMDET=1\r", "OK", 250, modemResponse, 0);
 
       Serial.println("Get ICCID");
-      WaitForResponse("AT#CCID\r", "OK", 1000, modemResponse, 0);
+      WaitForResponse("AT#CCID\r", "OK", 250, modemResponse, 0);
       iccid = parseICCID(modemResponse);
 
-      WaitForResponse("AT#SCFG=1,1,1000,65535,600,50\r", "OK", 1000, modemResponse, 0);
+      WaitForResponse("AT#SCFG=1,1,1000,65535,600,50\r", "OK", 250, modemResponse, 0);
       
-      WaitForResponse("AT#SGACT=1,0\r", "OK", 1000, modemResponse, 0);
+      WaitForResponse("AT#SGACT=1,0\r", "OK", 250, modemResponse, 0);
 
       Serial.println("Setup PDP");
-      WaitForResponse("AT+CGDCONT=1,\"IP\",\"m2m.com.attz\"\r", "OK", 1000, modemResponse, 0);
+      WaitForResponse("AT+CGDCONT=1,\"IP\",\"m2m.com.attz\"\r", "OK", 250, modemResponse, 0);
       //WaitForResponse("AT%PDNSET=1,\"m2m.com.attz\",\"IP\"\r", "OK", 1000, modemResponse, 0);
-      delay(5000);
       
       Serial.println("Check signal strength");
-      WaitForResponse("AT+CSQ\r", "OK", 1000, modemResponse, 0);
+      WaitForResponse("AT+CSQ\r", "OK", 250, modemResponse, 0);
 
       //Serial.println("Check firmware version");
       //WaitForResponse("AT+CGMR\r", "OK", 500, modemResponse, 0);
-
-      Serial.println("Get IP");
-      WaitForResponse("AT#SGACT=1,1\r", "OK", 3000, modemResponse, 0);
+      modemReady = true;
+      //WaitForResponse("+++", "OK", 1000, modemResponse, 0);
+    }
+    else if (!connectionGood) {
+      //Serial.println("Waiting for network connection");
+      cellSerial.print("AT+CGREG?\r");
+      cellSerial.flush();
+      currentString = "";
+      delay(250);
       
-      Serial.println("Waiting for network connection");
-      while(!connectionGood)
+      // Read cellSerial port buffer1 for UART connected to modem and print that message back out to debug cellSerial over USB
+      while(cellSerial.available() > 0) 
       {
-        cellSerial.print("AT+CGREG?\r");
-        currentString = "";
-        delay(1000);
+        //read incoming byte from modem
+        char incomingByte = cellSerial.read();
+        //write byte out to debug cellSerial over USB
+        Serial.print(incomingByte);
         
-        // Read cellSerial port buffer1 for UART connected to modem and print that message back out to debug cellSerial over USB
-        while(cellSerial.available() > 0) 
+        // add current byte to the string we are building
+        currentString += char(incomingByte);
+    
+        // check currentString to see if network status is "0,1" or "0,5" which means we are connected
+        if((currentString.substring(currentString.length()-3, currentString.length()) == "0,1") || 
+           (currentString.substring(currentString.length()-3, currentString.length()) == "0,5"))
         {
-          //read incoming byte from modem
-          char incomingByte = cellSerial.read();
-          //write byte out to debug cellSerial over USB
-          Serial.print(incomingByte);
-          
-          // add current byte to the string we are building
-          currentString += char(incomingByte);
-      
-          // check currentString to see if network status is "0,1" or "0,5" which means we are connected
-          if((currentString.substring(currentString.length()-3, currentString.length()) == "0,1") || 
-             (currentString.substring(currentString.length()-3, currentString.length()) == "0,5"))
-          {
-            connectionGood = true;
-            modemReady = true;
-            while(PrintModemResponse() > 0);  // consume rest of message once 0,1 or 0,5 is found
+          while(PrintModemResponse() > 0);  // consume rest of message once 0,1 or 0,5 is found
+
+          Serial.println("Get IP");
+          if (WaitForResponse("AT#SGACT=1,1\r", "OK", 3000, modemResponse, 0)) {
+            if (WaitForResponse("AT#SD=1,0,80,\"runm-east.att.io\",0,1,0\r", "CONNECT", 1000, modemResponse, 0)) {
+              connectionGood = true;
+            }
           }
         }
       }
-      WaitForResponse("AT#SD=1,0,80,\"runm-east.att.io\",0,1,0\r", "CONNECT", 3000, modemResponse, 0);
-      
     }
   }
 }
@@ -1977,20 +1748,26 @@ bool SendModemCommand(String command, String expectedResp, int msToWait, String&
         respOut += char(cellSerial.read());  // append remaining response characters (if any)
       return true;
     }
+    else if (resp.endsWith("ERROR")) {
+      ConsumeModemResponse();    
+      connectionGood = false;
+      modemReady = false;
+      delay(100);
+    }
   }
   respOut = resp;
   return false;
 }
 
 // repeatedly sends command to the modem until correct response is received
-void WaitForResponse(String command, String expectedResp, int msToWait, String& respOut, byte b)
+bool WaitForResponse(String command, String expectedResp, int msToWait, String& respOut, byte b)
 {
   bool isExpectedResp;
-  do {
-    isExpectedResp = SendModemCommand(command, expectedResp, msToWait, respOut, b);
-    Serial.println(respOut);
-    ConsumeModemResponse();   // just in case any characters remain in RX buffer
-  } while(!isExpectedResp);
+  isExpectedResp = SendModemCommand(command, expectedResp, msToWait, respOut, b);
+  Serial.println(respOut);
+  ConsumeModemResponse();   // just in case any characters remain in RX buffer
+  
+  return isExpectedResp;
 }
 
 // empty read buffer 
@@ -2037,11 +1814,9 @@ void chkForNAVServer() {
   int bleConnectCount = 0;
   do {
     queueVoiceResponse(175);                          // connecting to the nav server
-    delay(400);
     queueVoiceResponse(2);
     delay(100);
     queueVoiceResponse(158);
-    delay(200);
     queueVoiceResponse(174);
     delay(500);
     currTime3 = millis();
@@ -2075,17 +1850,14 @@ void chkForNAVServer() {
   delay(2000);
   if (navConnected) {
     queueVoiceResponse(176);                            //  Connected to ROGERNAV
-    delay(200);
     queueVoiceResponse(2);
     delay(100);
     queueVoiceResponse(133);
     } else {
     queueVoiceResponse(182);                            //   Bypassed Connecting to ROGERNAV
-    delay(200);
     queueVoiceResponse(175);
     delay(100);
     queueVoiceResponse(2);
-    delay(200);
     queueVoiceResponse(133);
   }
   delay(1000);
@@ -2096,11 +1868,9 @@ void chkForNAVServer() {
 //
 void kbdVRUHapticCheck() {
   queueVoiceResponse(42);                       //   Press
-  delay(200);
   queueVoiceResponse(1);                        //   One (1)
   delay(100);
   queueVoiceResponse(4);                        //   For (or 4)
-  delay(200);
   queueVoiceResponse(67);                       //   Left
   do {
     chkForCMDInput();
@@ -2112,11 +1882,9 @@ void kbdVRUHapticCheck() {
     }
   delay(500);
   queueVoiceResponse(42);                       //   Press
-  delay(200);
   queueVoiceResponse(3);                        //   Three (3)
   delay(100);
   queueVoiceResponse(4);                        //   For (or 4)
-  delay(200);
   queueVoiceResponse(66);                       //   Right
   do {
     chkForCMDInput();
@@ -2130,7 +1898,6 @@ void kbdVRUHapticCheck() {
   queueVoiceResponse(135);                       //   Congratulations
   delay(2000);
   queueVoiceResponse(104);                       //   System
-  delay(100);
   queueVoiceResponse(46);                        //   On
   delay(1500);
 }
@@ -2216,6 +1983,7 @@ void configIOPins() {
   digitalWrite(10, LOW);
   pinMode(11, OUTPUT);
   digitalWrite(11, LOW);
+  delay(500);
   pinMode(13, OUTPUT);
   digitalWrite(13, HIGH);
   delay(250);
@@ -2230,6 +1998,8 @@ void configIOPins() {
   digitalWrite(45, LOW);
   pinMode(47, OUTPUT);
   digitalWrite(47, LOW);
+  delay(500);
+  digitalWrite(11, HIGH);
 }
 //
 //
@@ -2246,7 +2016,7 @@ void configSerialPorts() {
     }
   bleCentral.begin(115200);                                              // start the Bluetooth LE serial port
   delay(250);
-  vruSerial.begin(9600);                                                 // start the Adafruit Music Maker serial port
+  vruSerial.begin(115200);                                                 // start the Adafruit Music Maker serial port
   delay(250);
   cellSerial.begin(115200);                                              // start the Adafruit Music Maker serial port
   delay(250);
@@ -2267,13 +2037,6 @@ void chkHapticDrv() {
       if (trace) {
         Serial.println("Haptic DRV Dev");
         }}
-/*
-  digitalWrite(10, HIGH);
-  digitalWrite(11, HIGH);
-  delay(250);
-  digitalWrite(10, LOW);
-  digitalWrite(11, LOW);
-*/
 }
 //
 //
@@ -2282,20 +2045,24 @@ void chkHapticDrv() {
 void setup() {
   configSerialPorts();               // initialize serial:
   configIOPins();                    // configure the IO pins
-  inputString.reserve(BUFSIZE);      // reserve 256 bytes for the inputString:
   checkForRTC();                     // Check for an RTC
   delay(250);
   sdCardInit();                      // initialize the SD card
   delay(250);
-  chkBLE();                          // start the Bluetooth LE interface
-  delay(250);
   chkHapticDrv();
+  digitalWrite(11, LOW);
+  delay(5000);
+  digitalWrite(11, HIGH);
+  delay(2000);
   if (trace) {
     Serial.println("Ready!");
     delay(250);
     }
 //  trace = false;
+  delay(5000);
+  digitalWrite(11, HIGH);  
   configRogerCMD();
+  //wdt_enable(WDTO_8S);
 }
 //
 //
@@ -2312,8 +2079,8 @@ void loop() {
   autoRecordWaypoint();
   computeTripInfo();
   checkTripComplete();
+  //wdt_reset();
 //  provideHapticFeedback();
-//
 }
 //
 //
