@@ -1,7 +1,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 //
-//  RogerVRU  V06m
+//  RogerVRU  V07m
 //  Will queue VRU mp3 files upon demand via Serial Port (Serial1) requests  
 //
 //
@@ -32,7 +32,7 @@
 //
 //
 uint16_t vruFSNum      = 0;            // File sequence number as a number
-uint16_t vruVSeq       = 254;          // File number to play
+uint16_t vruVSeq       = 999;          // File number to play
 //
 //
 boolean voiceRequest   = false;          
@@ -89,7 +89,12 @@ void printDirectory(File dir, int numTabs) {
 ///  Play VRU Files
 void playVRUFile(uint16_t fileNum) {
 // Play a file in the background, REQUIRES interrupts!
+//  if (fileNum == 999) {
+//    return;
+//    }
   if (fileNum == 254) {
+    delay(250);
+    vruVSeq = 999;
     return;
     }
   char vFileSeq[5];
@@ -209,33 +214,20 @@ void testPlayback() {
 void checkForVRUReq() {
   voiceRequest = false;
   if (musicPlayer.playingMusic) {
+    delay(50);
     return;}
   char vru = ' '; 
   while (cmdSerial.available()) {
     vru = cmdSerial.read();
-/*    if (vru == '\n') {
-       vruVSeq = 254;
-       break;
-      }
-    if (vru == '\r') {
-       vruVSeq = 254;
-       break;
-      }
-    if (vru == ';') {
-       vruVSeq = 254;
-       break;
-      }  */
      if (vru != 'Q') {
-       vruVSeq = 254;
        break;
       }
-//    if (vru == 'Q')  {
-      vruVSeq = cmdSerial.parseInt();
-      if (trace) {
-        Serial.println(vruVSeq, DEC);
-        }
-      voiceRequest = true;
-      break;
+    vruVSeq = cmdSerial.parseInt();
+    if (trace) {
+      Serial.println(vruVSeq, DEC);
+      }
+    voiceRequest = true;
+    break;
   }
 }
 //  
@@ -250,25 +242,17 @@ void checkForSerialReq() {
   byte vru = ' ';
   while (Serial.available()) {
     vru = Serial.read();
-    if (vru == '\n') {
-       voiceRequest = false;
-       vruVSeq = 254;
-       break;
-      }
      if (vru != 'Q') {
-       voiceRequest = false;
-       vruVSeq = 254;
+       vruVSeq = 999;
        break;
       }
-     if (vru == 'Q')  {
-          vruVSeq = Serial.parseInt();
-          if (trace) {
-            Serial.println(vruVSeq, DEC);
-            }
-        voiceRequest = true;
-        break;
-      }
-  }
+     vruVSeq = Serial.parseInt();
+     if (trace) {
+        Serial.println(vruVSeq, DEC);
+        }
+      voiceRequest = true;
+      break;
+    }
 }
 //  
 //
@@ -277,10 +261,10 @@ void checkForSerialReq() {
 void playWelcome() {
   playVRUFile(131);   //  Welcome is 131
   playVRUFile(255);   //  Ahmet is 255
-  delay(250);
+  playVRUFile(254);   //  delay 250ms
   playVRUFile(76);    //  Starting is 76
   playVRUFile(132);   //  RogerCMD is 132
-  delay(100);
+  playVRUFile(254);   //  delay 250ms
 }
 //
 //

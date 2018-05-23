@@ -1,7 +1,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 //
-//  RogerVRU  V06m
+//  RogerVRU  V05m
 //  Will queue VRU mp3 files upon demand via Serial Port (Serial1) requests  
 //
 //
@@ -32,7 +32,7 @@
 //
 //
 uint16_t vruFSNum      = 0;            // File sequence number as a number
-uint16_t vruVSeq       = 254;          // File number to play
+uint16_t vruVSeq       = 0;            // File number to play
 //
 //
 boolean voiceRequest   = false;          
@@ -41,7 +41,7 @@ boolean trace          = false;
 //
 //
 uint8_t vruSDVocNum    = 0;     // number of vru voice files on the SD card, incremented as read in printDirectory function
-uint8_t vruAppVocNum   = 210;   // relative to zero there should be 210 voice files on the SD card for this version of this sketch
+uint8_t vruAppVocNum   = 192;   // relative to zero there should be 193 voice files on the SD card for this version of this sketch
 //
 //
 Adafruit_VS1053_FilePlayer musicPlayer = 
@@ -89,9 +89,6 @@ void printDirectory(File dir, int numTabs) {
 ///  Play VRU Files
 void playVRUFile(uint16_t fileNum) {
 // Play a file in the background, REQUIRES interrupts!
-  if (fileNum == 254) {
-    return;
-    }
   char vFileSeq[5];
   String vFileName = "RNAV";
   sprintf(vFileSeq, "%.4d", fileNum);
@@ -134,7 +131,7 @@ void initVRU() {
 // 
 //  
 // Set volume for left, right channels. lower numbers == louder volume!
-  musicPlayer.setVolume(5,5);
+  musicPlayer.setVolume(10,10);
   delay(250);
 //  
 //
@@ -168,7 +165,7 @@ void checkSDCard() {
   // list files
   printDirectory(SD.open("/"), 0);
 //
-  if (vruSDVocNum != (vruAppVocNum)) {
+  if (vruSDVocNum != (vruAppVocNum + 3)) {
     if (trace) {
       Serial.println(F("Number of Voice Files does not match number required"));
       Serial.print(F("Number of VRU SD Card Vocal Files: "));
@@ -208,34 +205,20 @@ void testPlayback() {
 //  
 void checkForVRUReq() {
   voiceRequest = false;
-  if (musicPlayer.playingMusic) {
-    return;}
-  char vru = ' '; 
   while (cmdSerial.available()) {
-    vru = cmdSerial.read();
-/*    if (vru == '\n') {
-       vruVSeq = 254;
+    char vru = cmdSerial.read();
+    if (vru =='\n') {
+       voiceRequest = false;
        break;
       }
-    if (vru == '\r') {
-       vruVSeq = 254;
-       break;
-      }
-    if (vru == ';') {
-       vruVSeq = 254;
-       break;
-      }  */
-     if (vru != 'Q') {
-       vruVSeq = 254;
-       break;
-      }
-//    if (vru == 'Q')  {
+    if (vru == 'Q')  {
       vruVSeq = cmdSerial.parseInt();
       if (trace) {
         Serial.println(vruVSeq, DEC);
         }
       voiceRequest = true;
       break;
+      }
   }
 }
 //  
@@ -247,26 +230,19 @@ void checkForSerialReq() {
     return;
     }
   voiceRequest = false;
-  byte vru = ' ';
   while (Serial.available()) {
-    vru = Serial.read();
+    byte vru = Serial.read();
     if (vru == '\n') {
        voiceRequest = false;
-       vruVSeq = 254;
        break;
       }
-     if (vru != 'Q') {
-       voiceRequest = false;
-       vruVSeq = 254;
-       break;
-      }
-     if (vru == 'Q')  {
-          vruVSeq = Serial.parseInt();
-          if (trace) {
-            Serial.println(vruVSeq, DEC);
-            }
-        voiceRequest = true;
-        break;
+    if (vru == 'Q')  {
+      vruVSeq = Serial.parseInt();
+        if (trace) {
+          Serial.println(vruVSeq, DEC);
+          }
+      voiceRequest = true;
+      break;
       }
   }
 }
@@ -289,7 +265,7 @@ void playWelcome() {
 //
 void setup() {
 //  trace = true;
-//  delay(1000);
+  delay(1000);
   if (trace) {
     Serial.begin(115200);
     while (!Serial) { 
@@ -297,14 +273,14 @@ void setup() {
   if (trace) {
     Serial.println("Starting CMD Serial port");
     }
-  cmdSerial.begin(115200);    
+  cmdSerial.begin(9600);    
   delay(100);  
   initVRU();
   delay(100);
   checkSDCard();
 //  testPlayback();
   playWelcome();
-//  delay(500);                       //  give the serial port time to stabilize for first use
+  delay(500);                       //  give the serial port time to stabilize for first use
   if (trace) {
     Serial.println("Starting Main Loop");
     }
