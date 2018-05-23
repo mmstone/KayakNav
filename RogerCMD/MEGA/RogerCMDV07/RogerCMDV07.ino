@@ -49,7 +49,7 @@ extern "C" {
 #define sysLED                  13           // Onboard SYSTEM LED and Piezo Buzzer
 #define AUTO_RECORD_INT_MS      10000        // 10 sec interval for auto record waypoint
 #define PLAYBACK_INT_MS         3000         // 3 sec interval for computing course during playback
-#define BLE_WAIT_MS             250          // Time to wait for BLE response n ms
+#define BLE_WAIT_MS             300          // Time to wait for BLE response n ms
 #define TRIP_COMPLETE_INT_MS    10000        // 10 sec interval to let user know trip is complete
 #define MODEM_INIT_WAIT         5000         // Time for modem to initialize
 #define WAYPOINTS_INIT_LEN      200
@@ -777,18 +777,27 @@ int findStartingWaypointInd() {
   char bleResp[50];
   int bleRespInd = 0;
   // Get GPS coordinates from NAV server
-  bleCentral.println('o');
+  int bytesWritten = bleCentral.println('o');
   bleCentral.flush();
+  Serial.print("bytesWritten = ");
+  Serial.println(bytesWritten);
   do {
-    while (bleCentral.available()) {
+    if (bleCentral.available()) {
       if (bleRespInd < 49) {
         bleResp[bleRespInd++] = bleCentral.read();
+      }
+      else {
+        bleCentral.read();
       }
     }
     elapsedTime = millis() - currTime2;
   } while (elapsedTime < BLE_WAIT_MS); // Wait for 200ms max
   bleResp[bleRespInd] = '\0';
   //Serial.println(bleResp);
+
+  while (bleCentral.available()) {
+    bleCentral.read();
+  }
 
   if (strlen(bleResp) < 45) {
     return 0;
@@ -797,7 +806,7 @@ int findStartingWaypointInd() {
   float latDeg = 0.0;
   float lonDeg = 0.0;
   parseGPSString(&bleResp[0], &latDeg, &lonDeg);
-  if ((latDeg<90.0) && (latDeg>-90.0) && (lonDeg<180.0) && (lonDeg>-180.0)) {
+  if ((latDeg!=0.0) && (lonDeg!=0.0) && (latDeg<90.0) && (latDeg>-90.0) && (lonDeg<180.0) && (lonDeg>-180.0)) {
     // Valid
     Serial.print("GPS: ");
     Serial.print(latDeg, 6);
@@ -912,12 +921,12 @@ void computeTripInfo() {
       char bleResp[50];
       int bleRespInd = 0;
       // Get GPS coordinates from NAV server
-      bleCentral.println('o');
-      Serial.print("1");
+      int bytesWritten = bleCentral.println('o');
       bleCentral.flush();
-      Serial.print("2");
+      Serial.print("bytesWritten = ");
+      Serial.println(bytesWritten);
       do {
-        while (bleCentral.available()) {
+        if (bleCentral.available()) {
           if (bleRespInd < 49) {
             bleResp[bleRespInd++] = bleCentral.read();
           }
@@ -928,6 +937,11 @@ void computeTripInfo() {
         elapsedTime = millis() - currTime2;
       } while (elapsedTime < BLE_WAIT_MS); // Wait for 200ms max
       bleResp[bleRespInd] = '\0';
+      
+      while (bleCentral.available()) {
+        bleCentral.read();
+      }
+      
       //Serial.println(bleResp);
       Serial.print("3");
 
@@ -940,7 +954,7 @@ void computeTripInfo() {
       float lonDeg = 0.0;
       parseGPSString(&bleResp[0], &latDeg, &lonDeg);
       Serial.print("5");
-      if ((latDeg<90.0) && (latDeg>-90.0) && (lonDeg<180.0) && (lonDeg>-180.0)) {
+      if ((latDeg!=0.0) && (lonDeg!=0.0) && (latDeg<90.0) && (latDeg>-90.0) && (lonDeg<180.0) && (lonDeg>-180.0)) {
         // Valid
         Serial.print("GPS: ");
         Serial.print(latDeg, 6);
@@ -949,6 +963,7 @@ void computeTripInfo() {
       }
       else {
         Serial.println("Invalid GPS");
+        return;
       }
 
       Serial.print("Next waypoint: ");
@@ -977,10 +992,12 @@ void computeTripInfo() {
       memset(bleResp, 0, 50);
       delay(100);
       
-      bleCentral.println('H');
+      bytesWritten = bleCentral.println('H');
       bleCentral.flush();
+      Serial.print("bytesWritten = ");
+      Serial.println(bytesWritten);
       do {
-        while (bleCentral.available()) {
+        if (bleCentral.available()) {
           if (bleRespInd < 49) {
             bleResp[bleRespInd++] = bleCentral.read();
           }
@@ -992,6 +1009,10 @@ void computeTripInfo() {
       } while (elapsedTime < BLE_WAIT_MS); // Wait for 200ms max
       bleResp[bleRespInd] = '\0';
       //Serial.println(bleResp);
+
+      while (bleCentral.available()) {
+        bleCentral.read();
+      }
 
       if (strlen(bleResp) < 15) {
         return;
@@ -1486,10 +1507,12 @@ void recordWaypoint() {
     char bleResp[50];
     int bleRespInd = 0;
     // Get GPS coordinates from NAV server
-    bleCentral.println('o');
+    int bytesWritten = bleCentral.println('o');
     bleCentral.flush();
+    Serial.print("bytesWritten = ");
+    Serial.println(bytesWritten);
     do {
-      while (bleCentral.available()) {
+      if (bleCentral.available()) {
         if (bleRespInd < 49) {
           bleResp[bleRespInd++] = bleCentral.read();
         }
@@ -1502,6 +1525,10 @@ void recordWaypoint() {
     bleResp[bleRespInd] = '\0';
     //Serial.println(bleResp);
     //Serial.println(strlen(bleResp));
+
+    while (bleCentral.available()) {
+      bleCentral.read();
+    }
 
     if (strlen(bleResp) < 45) {
       return;
@@ -1518,6 +1545,7 @@ void recordWaypoint() {
     dtostrf(latDeg, 8, 6, temp1);
     dtostrf(lonDeg, 8, 6, temp2);
     char parsedCoord[25];
+    bool waypointRecorded = false;
     if ((latDeg!=0.0) && (lonDeg!=0.0) && (latDeg<90.0) && (latDeg>-90.0) && (lonDeg<180.0) && (lonDeg>-180.0)) {
       // Valid
       sprintf(parsedCoord, "%s,%s", temp1, temp2);
@@ -1525,6 +1553,7 @@ void recordWaypoint() {
       //Serial.println(strlen(parsedCoord));
       tripFile.print(parsedCoord);
       tripFile.flush();
+      waypointRecorded = true;
 
       Serial.print("Waypoint: ");
       Serial.println(parsedCoord);
@@ -1545,10 +1574,12 @@ void recordWaypoint() {
     memset(bleResp, 0, 50);
     delay(100);
     
-    bleCentral.println('H');
+    bytesWritten = bleCentral.println('H');
     bleCentral.flush();
+    Serial.print("bytesWritten = ");
+    Serial.println(bytesWritten);
     do {
-      while (bleCentral.available()) {
+      if (bleCentral.available()) {
         if (bleRespInd < 49) {
           bleResp[bleRespInd++] = bleCentral.read();
         }
@@ -1562,7 +1593,15 @@ void recordWaypoint() {
     //Serial.println(bleResp);
     //Serial.println(strlen(bleResp));
 
+    while (bleCentral.available()) {
+      bleCentral.read();
+    }
+
     if (strlen(bleResp) < 15) {
+      if (waypointRecorded) {
+        tripFile.println();
+        tripFile.flush();
+      }
       return;
     }
     
@@ -1575,7 +1614,7 @@ void recordWaypoint() {
     Serial.print("saveString: ");
     Serial.println(saveString);
     */
-
+    
     if (currHeading >= 0.0f) {
       dtostrf(currHeading, 4, 2, temp1);
       //Serial.println(temp1);
