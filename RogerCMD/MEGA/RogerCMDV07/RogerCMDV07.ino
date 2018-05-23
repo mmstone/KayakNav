@@ -51,7 +51,7 @@ extern "C" {
 #define PLAYBACK_INT_MS         3000         // 3 sec interval for computing course during playback
 #define BLE_WAIT_MS             250          // Time to wait for BLE response n ms
 #define TRIP_COMPLETE_INT_MS    10000        // 10 sec interval to let user know trip is complete
-#define MODEM_INIT_WAIT         4000         // Time for modem to initialize
+#define MODEM_INIT_WAIT         5000         // Time for modem to initialize
 #define WAYPOINTS_INIT_LEN      200
 #define WAYPOINT_PAGES          10
 #define LOC_UPDATE_INT          10000
@@ -788,6 +788,11 @@ int findStartingWaypointInd() {
     elapsedTime = millis() - currTime2;
   } while (elapsedTime < BLE_WAIT_MS); // Wait for 200ms max
   bleResp[bleRespInd] = '\0';
+  //Serial.println(bleResp);
+
+  if (strlen(bleResp) < 45) {
+    return 0;
+  }
 
   float latDeg = 0.0;
   float lonDeg = 0.0;
@@ -804,11 +809,11 @@ int findStartingWaypointInd() {
     return 0;
   }
 
-  char line[81];
+  char line[31];
   int index = 0;
   Waypoint finalWaypoint = {seqNum:0, time:0, gpsLatDeg:0.0, gpsLonDeg:0.0};
   for (int i=0; i<totalWaypoints; i++) {
-    while (playbackFile.available() && index < 80) {
+    while (playbackFile.available() && index < 30) {
       char c = playbackFile.read();
       //Serial.print(c);
 
@@ -821,15 +826,19 @@ int findStartingWaypointInd() {
         Serial.print(", totalWaypoints: ");
         Serial.println(totalWaypoints);
         */
+        line[--index] = '\0';
+        //Serial.println(line);
+        //Serial.println(strlen(line));
 
         if (i == totalWaypoints-1) {
-          finalWaypoint = parseWaypoint(line);
+          finalWaypoint = parseWaypoint(&line[0]);
           Serial.print("Final dest: ");
           Serial.print(finalWaypoint.gpsLatDeg, 6);
           Serial.print(",");
           Serial.println(finalWaypoint.gpsLonDeg, 6);
         }
 
+        memset(line, 0, 31);
         index = 0;
         break;
       }
@@ -842,15 +851,18 @@ int findStartingWaypointInd() {
   Serial.println(distToDest);
 
   index = 0;
+  memset(line, 0, 31);
   Waypoint waypoint = {seqNum:0, time:0, gpsLatDeg:0.0, gpsLonDeg:0.0};
   for (int i=0; i<totalWaypoints; i++) {
-    while (playbackFile.available() && index < 80) {
+    while (playbackFile.available() && index < 30) {
       char c = playbackFile.read();
       //Serial.print(c);
 
       line[index++] = c;
       if (c == '\n') {
-        waypoint = parseWaypoint(line);
+        line[--index] = '\0';
+        
+        waypoint = parseWaypoint(&line[0]);
         float totalDist = dist_between(waypoint.gpsLatDeg, waypoint.gpsLonDeg, finalWaypoint.gpsLatDeg, finalWaypoint.gpsLonDeg);
         if (totalDist < distToDest) {
           Serial.print("Start at waypoint ");
@@ -860,6 +872,7 @@ int findStartingWaypointInd() {
           return i;
         }
 
+        memset(line, 0, 31);
         index = 0;
         break;
       }
@@ -900,20 +913,33 @@ void computeTripInfo() {
       int bleRespInd = 0;
       // Get GPS coordinates from NAV server
       bleCentral.println('o');
+      Serial.print("1");
       bleCentral.flush();
+      Serial.print("2");
       do {
         while (bleCentral.available()) {
           if (bleRespInd < 49) {
             bleResp[bleRespInd++] = bleCentral.read();
           }
+          else {
+            bleCentral.read();
+          }
         }
         elapsedTime = millis() - currTime2;
       } while (elapsedTime < BLE_WAIT_MS); // Wait for 200ms max
       bleResp[bleRespInd] = '\0';
+      //Serial.println(bleResp);
+      Serial.print("3");
+
+      if (strlen(bleResp) < 45) {
+        return;
+      }
+      Serial.print("4");
 
       float latDeg = 0.0;
       float lonDeg = 0.0;
       parseGPSString(&bleResp[0], &latDeg, &lonDeg);
+      Serial.print("5");
       if ((latDeg<90.0) && (latDeg>-90.0) && (lonDeg<180.0) && (lonDeg>-180.0)) {
         // Valid
         Serial.print("GPS: ");
@@ -949,6 +975,8 @@ void computeTripInfo() {
       elapsedTime = 0;
       bleRespInd = 0;
       memset(bleResp, 0, 50);
+      delay(100);
+      
       bleCentral.println('H');
       bleCentral.flush();
       do {
@@ -956,10 +984,18 @@ void computeTripInfo() {
           if (bleRespInd < 49) {
             bleResp[bleRespInd++] = bleCentral.read();
           }
+          else {
+            bleCentral.read();
+          }
         }
         elapsedTime = millis() - currTime2;
       } while (elapsedTime < BLE_WAIT_MS); // Wait for 200ms max
       bleResp[bleRespInd] = '\0';
+      //Serial.println(bleResp);
+
+      if (strlen(bleResp) < 15) {
+        return;
+      }
 
       currHeading = parseHeading(&bleResp[0]);
       Serial.print("Heading: ");
@@ -1100,7 +1136,7 @@ float parseHeading(char *str) {
   if ((startInd<decimalInd) && (decimalInd<strlen(str)-2) && (len>0)) {
     while (index < len) {
       char c = str[startInd++];
-      if (isDigit(c) || c == '.') {
+      if (isdigit(c) || c == '.') {
         headingStr[index++] = c;
       }
     }
@@ -1264,19 +1300,15 @@ void confirmAction() {
 //
 //
 void seekToStartingWaypoint() {
-  String line = "";
-
   for (int i=0; i<startingWaypointsInd; i++) {
     while (playbackFile.available()) {
       char c = playbackFile.read();
       //Serial.print(c);
 
-      line += c;
       if (c == '\n') {
         Serial.print("Skipped waypoint ");
         Serial.println(i);
 
-        line = "";
         break;
       }
     }
@@ -1319,7 +1351,7 @@ void loadWaypointsFromFile() {
 
       line += c;
       if (c == '\n') {
-        Waypoint waypoint = parseWaypoint(line);
+        Waypoint waypoint = parseWaypoint(&line[0]);
         waypoint.seqNum = seqNum++;
         count++;
         //waypoints[i] = waypoint;
@@ -1344,15 +1376,18 @@ void loadWaypointsFromFile() {
 }
 
 void loadNextWaypoint() {
-  String line = "";
+  char line[31];
+  int index = 0;
 
-  while (playbackFile.available()) {
+  while (playbackFile.available() && index < 30) {
     char c = playbackFile.read();
     //Serial.print(c);
 
-    line += c;
+    line[index++] = c;
     if (c == '\n') {
-      currWaypoint = parseWaypoint(line);
+      line[--index] = '\0';
+      
+      currWaypoint = parseWaypoint(&line[0]);
       currWaypoint.seqNum = totalWaypointsInd;
       Serial.print("Loaded waypoint: ");
       Serial.print(totalWaypointsInd);
@@ -1363,25 +1398,41 @@ void loadNextWaypoint() {
       Serial.print(",");
       Serial.println(currWaypoint.gpsLonDeg, 6);
 
-      line = "";
+      memset(line, 0, 31);
+      index = 0;
       break;
     }
   }
 }
 //
 //
-Waypoint parseWaypoint(String str) {
+Waypoint parseWaypoint(char *str) {
   Waypoint waypoint = {seqNum:0, time:0, gpsLatDeg:0.0, gpsLonDeg:0.0};
   int startInd = 0;
-  int delimInd = str.indexOf(',');
-  String part = str.substring(startInd, delimInd);
+  int delimInd = charArrIndexOf(str, ',');
+  int len = delimInd - startInd;
+  //Serial.println(startInd);
+  //Serial.println(delimInd);
+  //Serial.println(len);
+  
+  char temp[11];
+  memcpy(temp, &str[startInd], len);
+  temp[len] = '\0';
+  //Serial.println(temp);
   // part 1 longitude
-  waypoint.gpsLatDeg = part.toFloat();
+  waypoint.gpsLatDeg = (float)atof(temp);
 
+  memset(temp, 0, 11);
   startInd = delimInd + 1;
-  part = str.substring(startInd);
+  delimInd = charArrIndexOf(str, ':');
+  len = delimInd - startInd;
+  //Serial.println(startInd);
+  //Serial.println(len);
+  memcpy(temp, &str[startInd], len);
+  temp[len] = '\0';
+  //Serial.println(temp);
   // part 2 latitude
-  waypoint.gpsLonDeg = part.toFloat();
+  waypoint.gpsLonDeg = (float)atof(temp);
 
   return waypoint;
 }
@@ -1442,12 +1493,19 @@ void recordWaypoint() {
         if (bleRespInd < 49) {
           bleResp[bleRespInd++] = bleCentral.read();
         }
+        else {
+          bleCentral.read();
+        }
       }
       elapsedTime = millis() - currTime;
     } while (elapsedTime < BLE_WAIT_MS); // Wait for 200ms max
     bleResp[bleRespInd] = '\0';
     //Serial.println(bleResp);
     //Serial.println(strlen(bleResp));
+
+    if (strlen(bleResp) < 45) {
+      return;
+    }
 
     float latDeg = 0.0;
     float lonDeg = 0.0;
@@ -1474,6 +1532,7 @@ void recordWaypoint() {
     }
     else {
       Serial.println("Invalid waypoint");
+      return;
     }
 
     //currWaypoint.gpsLatDeg = 29.55;
@@ -1484,6 +1543,8 @@ void recordWaypoint() {
     elapsedTime = 0;
     bleRespInd = 0;
     memset(bleResp, 0, 50);
+    delay(100);
+    
     bleCentral.println('H');
     bleCentral.flush();
     do {
@@ -1491,12 +1552,19 @@ void recordWaypoint() {
         if (bleRespInd < 49) {
           bleResp[bleRespInd++] = bleCentral.read();
         }
+        else {
+          bleCentral.read();
+        }
       }
       elapsedTime = millis() - currTime;
     } while (elapsedTime < BLE_WAIT_MS); // Wait for 200ms max
     bleResp[bleRespInd] = '\0';
     //Serial.println(bleResp);
     //Serial.println(strlen(bleResp));
+
+    if (strlen(bleResp) < 15) {
+      return;
+    }
     
     currHeading = parseHeading(&bleResp[0]);
     Serial.print("Heading: ");
@@ -1727,34 +1795,52 @@ void checkModem() {
   if (millis() > MODEM_INIT_WAIT) {
     if (!modemReady) {
       Serial.println("Test AT command");
-      WaitForResponse("AT\r", "OK", 250, modemResponse, 0);
+      if (!WaitForResponse("AT\r", "OK", 250, modemResponse, 0)) {
+        return;
+      }
 
       Serial.println("Reseting modem");
-      WaitForResponse("ATZ\r", "OK", 250, modemResponse, 0);
+      if (!WaitForResponse("ATZ\r", "OK", 250, modemResponse, 0)) {
+        return;
+      }
 
       Serial.println("Turn on verbose error messages");
-      WaitForResponse("AT+CMEE=2\r", "OK", 250, modemResponse, 0);
+      if (!WaitForResponse("AT+CMEE=2\r", "OK", 250, modemResponse, 0)) {
+        return;
+      }
 
       //Serial.println("Check baud rate");
       //WaitForResponse("AT+IPR?\r", "OK", 250, modemResponse, 0);
 
       Serial.println("Enable SIM detect");
-      WaitForResponse("AT#SIMDET=1\r", "OK", 250, modemResponse, 0);
+      if (!WaitForResponse("AT#SIMDET=1\r", "OK", 250, modemResponse, 0)) {
+        return;
+      }
 
       Serial.println("Get ICCID");
-      WaitForResponse("AT#CCID\r", "OK", 250, modemResponse, 0);
+      if (!WaitForResponse("AT#CCID\r", "OK", 250, modemResponse, 0)) {
+        return;
+      }
       iccid = parseICCID(modemResponse);
 
-      WaitForResponse("AT#SCFG=1,1,1000,65535,600,50\r", "OK", 250, modemResponse, 0);
+      if (!WaitForResponse("AT#SCFG=1,1,1000,65535,600,50\r", "OK", 250, modemResponse, 0)) {
+        return;
+      }
 
-      WaitForResponse("AT#SGACT=1,0\r", "OK", 250, modemResponse, 0);
+      if (!WaitForResponse("AT#SGACT=1,0\r", "OK", 250, modemResponse, 0)) {
+        return;
+      }
 
       Serial.println("Setup PDP");
-      WaitForResponse("AT+CGDCONT=1,\"IP\",\"m2m.com.attz\"\r", "OK", 250, modemResponse, 0);
+      if (!WaitForResponse("AT+CGDCONT=1,\"IP\",\"m2m.com.attz\"\r", "OK", 250, modemResponse, 0)) {
+        return;
+      }
       //WaitForResponse("AT%PDNSET=1,\"m2m.com.attz\",\"IP\"\r", "OK", 1000, modemResponse, 0);
 
       Serial.println("Check signal strength");
-      WaitForResponse("AT+CSQ\r", "OK", 250, modemResponse, 0);
+      if (!WaitForResponse("AT+CSQ\r", "OK", 250, modemResponse, 0)) {
+        return;
+      }
 
       //Serial.println("Check firmware version");
       //WaitForResponse("AT+CGMR\r", "OK", 500, modemResponse, 0);
@@ -1786,8 +1872,8 @@ void checkModem() {
           while(PrintModemResponse() > 0);  // consume rest of message once 0,1 or 0,5 is found
 
           Serial.println("Get IP");
-          if (WaitForResponse("AT#SGACT=1,1\r", "OK", 4000, modemResponse, 0)) {
-            if (WaitForResponse("AT#SD=1,0,80,\"runm-east.att.io\",0,1,0\r", "CONNECT", 1000, modemResponse, 0)) {
+          if (WaitForResponse("AT#SGACT=1,1\r", "OK", 5000, modemResponse, 0)) {
+            if (WaitForResponse("AT#SD=1,0,80,\"runm-east.att.io\",0,1,0\r", "CONNECT", 2000, modemResponse, 0)) {
               connectionGood = true;
             }
           }
@@ -1819,9 +1905,11 @@ bool SendModemCommand(String command, String expectedResp, int msToWait, String&
   while(!cellSerial.available())
   {
     cmd_timeout++;
-    if (cmd_timeout == 1000)
+    if (cmd_timeout == 10)
     {
       Serial.println("command timeout");
+      //connectionGood = false;
+      //modemReady = false;
       return false;
     }
     delay(10);
@@ -1845,6 +1933,7 @@ bool SendModemCommand(String command, String expectedResp, int msToWait, String&
       connectionGood = false;
       modemReady = false;
       delay(100);
+      return false;
     }
   }
   respOut = resp;
@@ -2165,7 +2254,7 @@ void setup() {
 void loop() {
 //  testVRUCom();
   //checkModem();
-  sendLocationToFlow();
+  //sendLocationToFlow();
 //  testBLECom();
 //  testCellCom();
   chkForCMDInput();
