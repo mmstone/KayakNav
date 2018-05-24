@@ -1506,6 +1506,8 @@ void recordWaypoint() {
   if ((currMode == MANUAL_REC) || (currMode == AUTO_REC)) {
     uint32_t currTime = millis();
     uint32_t elapsedTime = 0;
+    Serial.println(currTime);
+    
     char bleResp[50];
     int bleRespInd = 0;
     // Get GPS coordinates from NAV server
