@@ -225,6 +225,7 @@ float currHeading = 0;
 int startingWaypointsInd = 0;
 int totalWaypointsInd = 0;
 int numWaypointPages = 0;
+int bleErrCnt = 0;
 
 //
 //
@@ -800,6 +801,7 @@ int findStartingWaypointInd() {
   }
 
   if (strlen(bleResp) < 45) {
+    bleErrCnt++;
     return 0;
   }
 
@@ -948,6 +950,7 @@ void computeTripInfo() {
       if (strlen(bleResp) < 45) {
         //Serial.println(strlen(bleResp));
         //Serial.println(bleResp);
+        bleErrCnt++;
         return;
       }
       Serial.print("4");
@@ -1017,6 +1020,7 @@ void computeTripInfo() {
       }
 
       if (strlen(bleResp) < 15) {
+        bleErrCnt++;
         return;
       }
 
@@ -1500,6 +1504,15 @@ bool loadFileForPlayback() {
 
   return true;
 }
+
+void checkBLEError() {
+  if (bleErrCnt >= 3) {
+    digitalWrite(12, LOW);
+    delay(250);
+    digitalWrite(12, HIGH);
+    bleErrCnt = 0;
+  }
+}
 //
 //
 void recordWaypoint() {
@@ -1536,6 +1549,7 @@ void recordWaypoint() {
     Serial.print("3");
 
     if (strlen(bleResp) < 45) {
+      bleErrCnt++;
       return;
     }
 
@@ -1605,6 +1619,7 @@ void recordWaypoint() {
     }
 
     if (strlen(bleResp) < 15) {
+      bleErrCnt++;
       if (waypointRecorded) {
         tripFile.println();
         tripFile.flush();
@@ -2227,6 +2242,8 @@ void configIOPins() {
   digitalWrite(45, LOW);
   pinMode(47, OUTPUT);
   digitalWrite(47, LOW);
+  pinMode(12, OUTPUT);
+  digitalWrite(12, HIGH);
   delay(500);
   digitalWrite(11, HIGH);
 }
@@ -2308,6 +2325,7 @@ void loop() {
   autoRecordWaypoint();
   computeTripInfo();
   checkTripComplete();
+  checkBLEError();
   //wdt_reset();
 //  provideHapticFeedback();
 }
