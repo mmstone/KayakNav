@@ -809,6 +809,10 @@ void checkForCMDDataReq() {
       case '\n':
         stringComplete = true;
         bleSerial.flush();
+
+        while (bleSerial.available()) {
+          bleSerial.read();
+        }
         break;
       default:
         bleSerial.println("CMD ERROR" );
@@ -1191,7 +1195,7 @@ void loop() {
     digitalWrite(bleXfer, LOW);
     checkForCMDDataReq();                // check for and respond to BLE inteface/serial port for data commands/requests
     bleSerial.flush();                   // flush the ble serial port before doing anything else
-    getBLERSSI();                        // get the latest RSSI/dBm signal strength reading
+    //getBLERSSI();                        // get the latest RSSI/dBm signal strength reading
   }  else {
     digitalWrite(bleXfer, HIGH);
   }
