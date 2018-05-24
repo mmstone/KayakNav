@@ -946,6 +946,8 @@ void computeTripInfo() {
       Serial.print("3");
 
       if (strlen(bleResp) < 45) {
+        //Serial.println(strlen(bleResp));
+        //Serial.println(bleResp);
         return;
       }
       Serial.print("4");
@@ -1529,16 +1531,19 @@ void recordWaypoint() {
     while (bleCentral.available()) {
       bleCentral.read();
     }
+    Serial.print("3");
 
     if (strlen(bleResp) < 45) {
       return;
     }
 
+    Serial.print("4");
     float latDeg = 0.0;
     float lonDeg = 0.0;
     parseGPSString(&bleResp[0], &latDeg, &lonDeg);
     //Serial.println(latDeg);
     //Serial.println(lonDeg);
+    Serial.print("5");
 
     char temp1[11];
     char temp2[11];
