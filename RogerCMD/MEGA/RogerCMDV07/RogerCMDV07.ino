@@ -1510,6 +1510,8 @@ void checkBLEError() {
     digitalWrite(12, LOW);
     delay(250);
     digitalWrite(12, HIGH);
+    
+    Serial.println("Reset");
     bleErrCnt = 0;
   }
 }
@@ -2316,8 +2318,8 @@ void setup() {
 //
 void loop() {
 //  testVRUCom();
-  //checkModem();
-  //sendLocationToFlow();
+  checkModem();
+  sendLocationToFlow();
 //  testBLECom();
 //  testCellCom();
   chkForCMDInput();
