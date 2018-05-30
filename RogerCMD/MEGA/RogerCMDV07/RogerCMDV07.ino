@@ -1413,21 +1413,29 @@ void loadNextWaypoint() {
     line[index++] = c;
     if (c == '\n') {
       line[--index] = '\0';
-      
-      currWaypoint = parseWaypoint(&line[0]);
-      currWaypoint.seqNum = totalWaypointsInd;
-      Serial.print("Loaded waypoint: ");
-      Serial.print(totalWaypointsInd);
-      Serial.print("/");
-      Serial.print(totalWaypoints-1);
-      Serial.print(" - ");
-      Serial.print(currWaypoint.gpsLatDeg, 6);
-      Serial.print(",");
-      Serial.println(currWaypoint.gpsLonDeg, 6);
 
-      memset(line, 0, 31);
-      index = 0;
-      break;
+      if (strlen(line) > 22) {
+        currWaypoint = parseWaypoint(&line[0]);
+        currWaypoint.seqNum = totalWaypointsInd;
+        Serial.print("Loaded waypoint: ");
+        Serial.print(totalWaypointsInd);
+        Serial.print("/");
+        Serial.print(totalWaypoints-1);
+        Serial.print(" - ");
+        Serial.print(currWaypoint.gpsLatDeg, 6);
+        Serial.print(",");
+        Serial.println(currWaypoint.gpsLonDeg, 6);
+        break;
+      }
+      else {
+        Serial.print("Skip waypoint ");
+        Serial.print(totalWaypointsInd);
+        Serial.println(", bad data");
+        
+        totalWaypointsInd++;
+        memset(line, 0, 31);
+        index = 0;
+      }
     }
   }
 }
