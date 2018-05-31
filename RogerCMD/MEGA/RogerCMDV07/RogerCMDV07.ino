@@ -1070,10 +1070,12 @@ void computeTripInfo() {
           
           return;
         }
-        
-        totalWaypointsInd++;
+
         currWaypoint = nextWaypoint;
-        nextWaypoint = loadNextWaypoint();
+        if (totalWaypointsInd < totalWaypointsInd - 1) {
+          totalWaypointsInd++;
+          nextWaypoint = loadNextWaypoint();
+        }
         vruWayPointReached();
       }
       Serial.println();
