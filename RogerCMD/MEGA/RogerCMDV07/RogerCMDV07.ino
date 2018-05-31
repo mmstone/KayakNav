@@ -1072,8 +1072,8 @@ void computeTripInfo() {
         }
 
         currWaypoint = nextWaypoint;
+        totalWaypointsInd++;
         if (totalWaypointsInd < totalWaypointsInd - 1) {
-          totalWaypointsInd++;
           nextWaypoint = loadNextWaypoint();
         }
         vruWayPointReached();
