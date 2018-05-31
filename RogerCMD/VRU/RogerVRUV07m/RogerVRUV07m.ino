@@ -88,12 +88,8 @@ void printDirectory(File dir, int numTabs) {
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///  Play VRU Files
 void playVRUFile(uint16_t fileNum) {
-// Play a file in the background, REQUIRES interrupts!
-//  if (fileNum == 999) {
-//    return;
-//    }
-  if (fileNum == 254) {
-    delay(250);
+  if ((fileNum >= 250) && (fileNum <= 254)) {
+    vruDelay(fileNum);
     vruVSeq = 999;
     return;
     }
@@ -121,6 +117,31 @@ void playVRUFile(uint16_t fileNum) {
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
+void vruDelay(uint16_t vruDelay) {
+  switch (vruDelay) {
+    case 250:
+      delay(2000);
+      break;
+    case 251:
+      delay(1500);
+      break;
+    case 252:
+      delay(1000);
+      break;
+    case 253:
+      delay(500);
+      break;
+    case 254:
+      delay(250);
+      break;
+    default:
+      break;
+  }
+}
+//
+//
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
 void initVRU() {
   if (trace) {
     Serial.println("\n\nAdafruit VS1053 Feather Test");
@@ -139,7 +160,7 @@ void initVRU() {
 // 
 //  
 // Set volume for left, right channels. lower numbers == louder volume!
-  musicPlayer.setVolume(5,5);
+  musicPlayer.setVolume(10,10);
   delay(250);
 //  
 //
@@ -214,7 +235,6 @@ void testPlayback() {
 void checkForVRUReq() {
   voiceRequest = false;
   if (musicPlayer.playingMusic) {
-    delay(50);
     return;}
   char vru = ' '; 
   while (cmdSerial.available()) {
@@ -242,16 +262,16 @@ void checkForSerialReq() {
   byte vru = ' ';
   while (Serial.available()) {
     vru = Serial.read();
-     if (vru != 'Q') {
-       vruVSeq = 999;
-       break;
-      }
-     vruVSeq = Serial.parseInt();
-     if (trace) {
-        Serial.println(vruVSeq, DEC);
-        }
-      voiceRequest = true;
+    if (vru != 'Q') {
+      vruVSeq = 999;
       break;
+      }
+    vruVSeq = Serial.parseInt();
+    if (trace) {
+       Serial.println(vruVSeq, DEC);
+       }
+    voiceRequest = true;
+    break;
     }
 }
 //  
