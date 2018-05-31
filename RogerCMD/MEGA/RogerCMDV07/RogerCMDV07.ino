@@ -221,6 +221,7 @@ int totalWaypoints = 0;
 uint32_t filePos = 0;
 //Waypoint startingWaypoints[WAYPOINT_PAGES];
 Waypoint currWaypoint;
+Waypoint nextWaypoint;
 float currHeading = 0;
 int startingWaypointsInd = 0;
 int totalWaypointsInd = 0;
@@ -804,6 +805,7 @@ int findStartingWaypointInd() {
     bleErrCnt++;
     return 0;
   }
+  bleErrCnt = 0;
 
   float latDeg = 0.0;
   float lonDeg = 0.0;
@@ -953,6 +955,7 @@ void computeTripInfo() {
         bleErrCnt++;
         return;
       }
+      bleErrCnt = 0;
       Serial.print("4");
 
       float latDeg = 0.0;
@@ -984,6 +987,22 @@ void computeTripInfo() {
       Serial.print("Distance to next waypoint: ");
       Serial.print(distToWaypoint);
       Serial.print(", ");
+
+      if (totalWaypointsInd < totalWaypoints - 1) {
+        float distToNextWaypoint = dist_between(latDeg, lonDeg, nextWaypoint.gpsLatDeg, nextWaypoint.gpsLonDeg);
+        Serial.print("Distance to next next waypoint: ");
+        Serial.println(distToNextWaypoint);
+
+        if (distToNextWaypoint <= distToWaypoint) {
+          // Skip waypoint
+          Serial.println("Skip to next waypoint");
+          totalWaypointsInd++;
+          currWaypoint = nextWaypoint;
+          nextWaypoint = loadNextWaypoint();
+
+          return;
+        }
+      }
 
       float courseHeading = course_to(latDeg, lonDeg, currWaypoint.gpsLatDeg, currWaypoint.gpsLonDeg);
       Serial.print("Course heading: ");
@@ -1023,6 +1042,7 @@ void computeTripInfo() {
         bleErrCnt++;
         return;
       }
+      bleErrCnt = 0;
 
       currHeading = parseHeading(&bleResp[0]);
       Serial.print("Heading: ");
@@ -1037,7 +1057,8 @@ void computeTripInfo() {
       if (distToWaypoint <= 10.0) {
         totalWaypointsInd++;
         Serial.println("Waypoint reached.");
-        loadNextWaypoint();
+        currWaypoint = nextWaypoint;
+        nextWaypoint = loadNextWaypoint();
         vruWayPointReached();
         // Check if playback complete
         if (totalWaypointsInd == totalWaypoints) {
@@ -1304,7 +1325,9 @@ void confirmAction() {
         //loadWaypointsFromFile();
         seekToStartingWaypoint();
         totalWaypointsInd = startingWaypointsInd;
-        loadNextWaypoint();
+        currWaypoint = loadNextWaypoint();
+        totalWaypointsInd++;
+        nextWaypoint = loadNextWaypoint();
         currPlaybackStep = WAYPOINTS_LOADED;
         vruTripFileReady();
       }
@@ -1402,9 +1425,10 @@ void loadWaypointsFromFile() {
   }
 }
 
-void loadNextWaypoint() {
+Waypoint loadNextWaypoint() {
   char line[31];
   int index = 0;
+  Waypoint waypoint = {seqNum:0, time:0, gpsLatDeg:0.0, gpsLonDeg:0.0};
 
   while (playbackFile.available() && index < 30) {
     char c = playbackFile.read();
@@ -1415,16 +1439,16 @@ void loadNextWaypoint() {
       line[--index] = '\0';
 
       if (strlen(line) > 22) {
-        currWaypoint = parseWaypoint(&line[0]);
-        currWaypoint.seqNum = totalWaypointsInd;
+        waypoint = parseWaypoint(&line[0]);
+        waypoint.seqNum = totalWaypointsInd;
         Serial.print("Loaded waypoint: ");
         Serial.print(totalWaypointsInd);
         Serial.print("/");
         Serial.print(totalWaypoints-1);
         Serial.print(" - ");
-        Serial.print(currWaypoint.gpsLatDeg, 6);
+        Serial.print(waypoint.gpsLatDeg, 6);
         Serial.print(",");
-        Serial.println(currWaypoint.gpsLonDeg, 6);
+        Serial.println(waypoint.gpsLonDeg, 6);
         break;
       }
       else {
@@ -1438,6 +1462,8 @@ void loadNextWaypoint() {
       }
     }
   }
+
+  return waypoint;
 }
 //
 //
@@ -1562,6 +1588,7 @@ void recordWaypoint() {
       bleErrCnt++;
       return;
     }
+    bleErrCnt = 0;
 
     Serial.print("4");
     float latDeg = 0.0;
@@ -1636,6 +1663,7 @@ void recordWaypoint() {
       }
       return;
     }
+    bleErrCnt = 0;
     
     currHeading = parseHeading(&bleResp[0]);
     Serial.print("Heading: ");
@@ -2326,7 +2354,7 @@ void setup() {
 //
 void loop() {
 //  testVRUCom();
-  checkModem();
+//  checkModem();
   sendLocationToFlow();
 //  testBLECom();
 //  testCellCom();
