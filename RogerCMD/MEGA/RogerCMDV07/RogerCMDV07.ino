@@ -1055,11 +1055,8 @@ void computeTripInfo() {
 
       // Check if waypoint reached
       if (distToWaypoint <= 10.0) {
-        totalWaypointsInd++;
         Serial.println("Waypoint reached.");
-        currWaypoint = nextWaypoint;
-        nextWaypoint = loadNextWaypoint();
-        vruWayPointReached();
+        
         // Check if playback complete
         if (totalWaypointsInd == totalWaypoints) {
           currPlaybackStep = COMPLETE;
@@ -1070,7 +1067,14 @@ void computeTripInfo() {
           currWaypoint.gpsLonDeg = 0.0;
           currWaypoint.gpsLatDeg = 0.0;
           currHeading = 0.0;
+          
+          return;
         }
+        
+        totalWaypointsInd++;
+        currWaypoint = nextWaypoint;
+        nextWaypoint = loadNextWaypoint();
+        vruWayPointReached();
       }
       Serial.println();
     }
