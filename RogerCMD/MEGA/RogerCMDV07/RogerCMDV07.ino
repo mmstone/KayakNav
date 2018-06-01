@@ -912,7 +912,7 @@ int findStartingWaypointInd() {
 }
 
 void computeTripInfo() {
-  if ((currMode == PLAYBACK) && (currPlaybackStep == IN_PROGRESS) && (totalWaypointsInd < totalWaypoints)) {
+  if ((currMode == PLAYBACK) && (currPlaybackStep == IN_PROGRESS) && (totalWaypointsInd <= totalWaypoints)) {
     uint32_t currTime = millis();
 
     if ((currTime - timer) >= PLAYBACK_INT_MS) {
@@ -1054,7 +1054,7 @@ void computeTripInfo() {
       }
 
       // Check if waypoint reached
-      if (distToWaypoint <= 10.0) {
+      if (distToWaypoint <= 20.0) {
         Serial.println("Waypoint reached.");
         
         // Check if playback complete
@@ -1072,8 +1072,8 @@ void computeTripInfo() {
         }
 
         currWaypoint = nextWaypoint;
-        totalWaypointsInd++;
-        if (totalWaypointsInd < totalWaypointsInd - 1) {
+        if (totalWaypointsInd < totalWaypoints) {
+          totalWaypointsInd++;
           nextWaypoint = loadNextWaypoint();
         }
         vruWayPointReached();
