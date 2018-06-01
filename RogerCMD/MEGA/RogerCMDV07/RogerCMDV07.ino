@@ -1054,7 +1054,7 @@ void computeTripInfo() {
       }
 
       // Check if waypoint reached
-      if (distToWaypoint <= 20.0) {
+      if (distToWaypoint <= 10.0) {
         Serial.println("Waypoint reached.");
         
         // Check if playback complete
