@@ -573,12 +573,12 @@ void vruNotRecordingMode() {
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 void vruSayFileNumber() {
-  queueVoiceResponse(254);                        //   VRU pause 250ms 
+  delay(250);
   queueVoiceResponse(207);                        //  File Number is 
-  delay(800);
+  delay(1000);
   int fn = (filename[6] - 48);
   queueVoiceResponse(fn);
-  delay(500); 
+  delay(100); 
   fn = (filename[7] - 48);
   queueVoiceResponse(fn);
   queueVoiceResponse(254);                        //   VRU pause 250ms 
@@ -1359,6 +1359,7 @@ void seekToStartingWaypoint() {
       //Serial.print(c);
 
       if (c == '\n') {
+        vruWayPointReached();
         Serial.print("Skipped waypoint ");
         Serial.println(i);
 
@@ -1382,6 +1383,7 @@ void loadWaypointsFromFile() {
 
         line += c;
         if (c == '\n') {
+          vruWayPointReached();
           Serial.print("Skipped waypoint ");
           Serial.println(i);
 
@@ -2101,7 +2103,7 @@ void chkForNAVServer() {
     queueVoiceResponse(2);
     delay(100);
     queueVoiceResponse(158);
-    delay(100);
+    delay(200);
     queueVoiceResponse(174);
     delay(100);
     queueVoiceResponse(253);
@@ -2187,7 +2189,9 @@ void kbdVRUHapticCheck() {
   queueVoiceResponse(135);                       //   Congratulations
   delay(1000);                                   //   delay 1000ms
   queueVoiceResponse(104);                       //   System
+  delay(200);
   queueVoiceResponse(46);                        //   On
+  delay(1000);
 }
 //
 //
@@ -2337,7 +2341,7 @@ void setup() {
   checkForRTC();                     // Check for an RTC
   delay(250);
   sdCardInit();                      // initialize the SD card
-  delay(250);
+  delay(7000);
   chkHapticDrv();
   digitalWrite(11, LOW);
   delay(5000);
