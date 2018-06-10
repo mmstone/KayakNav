@@ -502,7 +502,16 @@ void vruWayPointRecorded() {
 void vruWayPointReached() {
   delay(500);
   queueVoiceResponse(200);                // waypoint reached
-  queueVoiceResponse(254);                        //   VRU pause 250ms 
+  queueVoiceResponse(254);               //   VRU pause 250ms 
+}
+//
+//
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+void vruWaySkipped() {
+  delay(500);
+  queueVoiceResponse(200);                // waypoint reached
+  queueVoiceResponse(254);               //   VRU pause 250ms 
 }
 //
 //
@@ -573,9 +582,9 @@ void vruNotRecordingMode() {
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 void vruSayFileNumber() {
-  delay(250);
+  delay(500);
   queueVoiceResponse(207);                        //  File Number is 
-  delay(1000);
+  delay(500);
   int fn = (filename[6] - 48);
   queueVoiceResponse(fn);
   delay(100); 
@@ -1359,7 +1368,7 @@ void seekToStartingWaypoint() {
       //Serial.print(c);
 
       if (c == '\n') {
-        vruWayPointReached();
+//        vruWayPointSkipped();
         Serial.print("Skipped waypoint ");
         Serial.println(i);
 
@@ -1383,7 +1392,7 @@ void loadWaypointsFromFile() {
 
         line += c;
         if (c == '\n') {
-          vruWayPointReached();
+//          vruWayPointSkipped();
           Serial.print("Skipped waypoint ");
           Serial.println(i);
 
@@ -2101,7 +2110,7 @@ void chkForNAVServer() {
     queueVoiceResponse(175);                          // connecting to the nav server
     delay(100);
     queueVoiceResponse(2);
-    delay(100);
+//    delay(100);
     queueVoiceResponse(158);
     delay(200);
     queueVoiceResponse(174);
