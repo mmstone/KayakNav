@@ -508,9 +508,10 @@ void vruWayPointReached() {
 //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
-void vruWaySkipped() {
+void vruWayPointSkipped() {
   delay(500);
-  queueVoiceResponse(200);                // waypoint reached
+  queueVoiceResponse(40);                //   point 
+  queueVoiceResponse(183);               //   skipped
   queueVoiceResponse(254);               //   VRU pause 250ms 
 }
 //
@@ -1001,6 +1002,7 @@ void computeTripInfo() {
 
         if (distToNextWaypoint <= distToWaypoint) {
           // Skip waypoint
+          vruWayPointSkipped();
           Serial.println("Skip to next waypoint");
           totalWaypointsInd++;
           currWaypoint = nextWaypoint;
@@ -1368,7 +1370,7 @@ void seekToStartingWaypoint() {
       //Serial.print(c);
 
       if (c == '\n') {
-//        vruWayPointSkipped();
+        vruWayPointSkipped();
         Serial.print("Skipped waypoint ");
         Serial.println(i);
 
@@ -1392,7 +1394,7 @@ void loadWaypointsFromFile() {
 
         line += c;
         if (c == '\n') {
-//          vruWayPointSkipped();
+          vruWayPointSkipped();
           Serial.print("Skipped waypoint ");
           Serial.println(i);
 
@@ -1466,6 +1468,7 @@ Waypoint loadNextWaypoint() {
         break;
       }
       else {
+        vruWayPointSkipped();
         Serial.print("Skip waypoint ");
         Serial.print(totalWaypointsInd);
         Serial.println(", bad data");
