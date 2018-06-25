@@ -222,7 +222,9 @@ uint32_t filePos = 0;
 //Waypoint startingWaypoints[WAYPOINT_PAGES];
 Waypoint currWaypoint;
 Waypoint nextWaypoint;
+Waypoint finalWaypoint;
 float currHeading = 0;
+uint32_t currHeadingAcqTime = 0;
 int startingWaypointsInd = 0;
 int totalWaypointsInd = 0;
 int numWaypointPages = 0;
@@ -773,6 +775,47 @@ void checkTripComplete() {
 }
 
 int findStartingWaypointInd() {
+  // Get final waypoint
+  char line[31];
+  int index = 0;
+  finalWaypoint = {seqNum:0, time:0, gpsLatDeg:0.0, gpsLonDeg:0.0};
+  Serial.print("totalWaypoints: ");
+  Serial.println(totalWaypoints);
+  
+  for (int i=0; i<totalWaypoints; i++) {
+    while (playbackFile.available() && index < 30) {
+      char c = playbackFile.read();
+      //Serial.print(c);
+
+      line[index++] = c;
+      if (c == '\n') {
+        //Serial.println(line);
+        /*
+        Serial.print("seqNum: ");
+        Serial.print(i);
+        Serial.print(", totalWaypoints: ");
+        Serial.println(totalWaypoints);
+        */
+        line[--index] = '\0';
+        //Serial.println(line);
+        //Serial.println(strlen(line));
+        
+        if (i == totalWaypoints-1) {
+          finalWaypoint = parseWaypoint(&line[0]);
+          Serial.print("Final dest: ");
+          Serial.print(finalWaypoint.gpsLatDeg, 6);
+          Serial.print(",");
+          Serial.println(finalWaypoint.gpsLonDeg, 6);
+        }
+
+        memset(line, 0, 31);
+        index = 0;
+        break;
+      }
+    }
+  }
+  playbackFile.seek(0);
+  
   // Get current location
   uint32_t currTime2 = millis();
   uint32_t elapsedTime = 0;
@@ -801,6 +844,7 @@ int findStartingWaypointInd() {
     bleCentral.read();
   }
 
+  //Serial.println(strlen(bleResp));
   if (strlen(bleResp) < 45) {
     bleErrCnt++;
     return 0;
@@ -821,43 +865,6 @@ int findStartingWaypointInd() {
     Serial.println("Invalid GPS, start at waypoint 0");
     return 0;
   }
-
-  char line[31];
-  int index = 0;
-  Waypoint finalWaypoint = {seqNum:0, time:0, gpsLatDeg:0.0, gpsLonDeg:0.0};
-  for (int i=0; i<totalWaypoints; i++) {
-    while (playbackFile.available() && index < 30) {
-      char c = playbackFile.read();
-      //Serial.print(c);
-
-      line[index++] = c;
-      if (c == '\n') {
-        //Serial.println(line);
-        /*
-        Serial.print("seqNum: ");
-        Serial.print(i);
-        Serial.print(", totalWaypoints: ");
-        Serial.println(totalWaypoints);
-        */
-        line[--index] = '\0';
-        //Serial.println(line);
-        //Serial.println(strlen(line));
-
-        if (i == totalWaypoints-1) {
-          finalWaypoint = parseWaypoint(&line[0]);
-          Serial.print("Final dest: ");
-          Serial.print(finalWaypoint.gpsLatDeg, 6);
-          Serial.print(",");
-          Serial.println(finalWaypoint.gpsLonDeg, 6);
-        }
-
-        memset(line, 0, 31);
-        index = 0;
-        break;
-      }
-    }
-  }
-  playbackFile.seek(0);
 
   float distToDest = dist_between(latDeg, lonDeg, finalWaypoint.gpsLatDeg, finalWaypoint.gpsLonDeg);
   Serial.print("Distance to final destination: ");
@@ -1045,6 +1052,7 @@ void computeTripInfo() {
       bleErrCnt = 0;
 
       currHeading = parseHeading(&bleResp[0]);
+      currHeadingAcqTime = millis();
       Serial.print("Heading: ");
       Serial.println(currHeading);
 
@@ -1310,6 +1318,78 @@ void processNumInput(char num) {
         // max valid entry is 99, error
         Serial.println("Error, max valid entry is 99");
       }
+    }
+    else if (currPlaybackStep == IN_PROGRESS) {
+      float distToDest = 0;
+      
+      switch (num) {
+        case '1': // current heading
+          Serial.print("Current heading:");
+          Serial.println(currHeading);
+          break;
+        case '2': // distance to final waypoint
+          distToDest = dist_between(currWaypoint.gpsLatDeg, currWaypoint.gpsLonDeg, finalWaypoint.gpsLatDeg, finalWaypoint.gpsLonDeg);
+          if (distToDest < 20000) {
+            Serial.print("Distance to final destination: ");
+            Serial.println(distToDest);
+          }
+          else {
+            Serial.println("Error in distance calculation");
+          }
+          break;
+        case '3':
+          break;
+      }
+    }
+  }
+  else if (currMode == MANUAL_REC || currMode == AUTO_REC) {
+    switch (num) {
+      case '1': // current heading
+        if ((millis() - currHeadingAcqTime) >= 3000) {
+          uint32_t currTime = millis();
+          uint32_t elapsedTime = 0;
+          char bleResp[50];
+          int bleRespInd = 0;
+          
+          int bytesWritten = bleCentral.println('H');
+          bleCentral.flush();
+          //Serial.print("bytesWritten = ");
+          //Serial.println(bytesWritten);
+          do {
+            if (bleCentral.available()) {
+              if (bleRespInd < 49) {
+                bleResp[bleRespInd++] = bleCentral.read();
+              }
+              else {
+                bleCentral.read();
+              }
+            }
+            elapsedTime = millis() - currTime;
+          } while (elapsedTime < BLE_WAIT_MS); // Wait for 200ms max
+          bleResp[bleRespInd] = '\0';
+          //Serial.println(bleResp);
+          //Serial.println(strlen(bleResp));
+
+          while (bleCentral.available()) {
+            bleCentral.read();
+          }
+
+          if (strlen(bleResp) < 15) {
+            bleErrCnt++;
+            return;
+          }
+          bleErrCnt = 0;
+          
+          currHeading = parseHeading(&bleResp[0]);
+          currHeadingAcqTime = millis();
+        }
+        Serial.print("Current heading:");
+        Serial.println(currHeading);
+        break;
+      case '2':
+        break;
+      case '3':
+        break;
     }
   }
 }
@@ -1672,6 +1752,7 @@ void recordWaypoint() {
     bleErrCnt = 0;
     
     currHeading = parseHeading(&bleResp[0]);
+    currHeadingAcqTime = millis();
     Serial.print("Heading: ");
     Serial.println(currHeading);
     
@@ -2375,6 +2456,7 @@ void loop() {
 }
 //
 //
+
 
 
 
