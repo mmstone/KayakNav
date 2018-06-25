@@ -1456,7 +1456,7 @@ void getSpeedKnots() {
       elapsedTime = millis() - currTime;
     } while (elapsedTime < BLE_WAIT_MS); // Wait for 200ms max
     bleResp[bleRespInd] = '\0';
-    Serial.println(bleResp);
+    //Serial.println(bleResp);
     //Serial.println(strlen(bleResp));
 
     while (bleCentral.available()) {
