@@ -224,7 +224,9 @@ Waypoint currWaypoint;
 Waypoint nextWaypoint;
 Waypoint finalWaypoint;
 float currHeading = 0;
+float currSpeed = 0;
 uint32_t currHeadingAcqTime = 0;
+uint32_t currSpeedAcqTime = 0;
 int startingWaypointsInd = 0;
 int totalWaypointsInd = 0;
 int numWaypointPages = 0;
@@ -1337,7 +1339,8 @@ void processNumInput(char num) {
             Serial.println("Error in distance calculation");
           }
           break;
-        case '3':
+        case '3': // Get speed from NAV GPS
+          getSpeedKnots();
           break;
       }
     }
@@ -1386,12 +1389,85 @@ void processNumInput(char num) {
         Serial.print("Current heading:");
         Serial.println(currHeading);
         break;
-      case '2':
+      case '2': // N/A for record mode
         break;
-      case '3':
+      case '3': // Get speed from NAV GPS
+        getSpeedKnots();
         break;
     }
   }
+}
+
+void getSpeedKnots() {
+  if ((millis() - currSpeedAcqTime) >= 5000) {
+    uint32_t currTime = millis();
+    uint32_t elapsedTime = 0;
+    char bleResp[50];
+    int bleRespInd = 0;
+    
+    int bytesWritten = bleCentral.println('V');
+    bleCentral.flush();
+    //Serial.print("bytesWritten = ");
+    //Serial.println(bytesWritten);
+    do {
+      if (bleCentral.available()) {
+        if (bleRespInd < 49) {
+          bleResp[bleRespInd++] = bleCentral.read();
+        }
+        else {
+          bleCentral.read();
+        }
+      }
+      elapsedTime = millis() - currTime;
+    } while (elapsedTime < BLE_WAIT_MS); // Wait for 200ms max
+    bleResp[bleRespInd] = '\0';
+    Serial.println(bleResp);
+    //Serial.println(strlen(bleResp));
+
+    while (bleCentral.available()) {
+      bleCentral.read();
+    }
+
+    if (strlen(bleResp) < 15) {
+      bleErrCnt++;
+      return;
+    }
+    bleErrCnt = 0;
+    
+    currSpeed = parseHeading(&bleResp[0]);
+    //Serial.println(currSpeed);
+    currSpeedAcqTime = millis();
+  }
+  Serial.print("Current speed:");
+  Serial.println(currSpeed);
+}
+
+float parseSpeed(char *str) {
+  int startInd = charArrIndexOf(str, '=') + 2;
+  int decimalInd = charArrLastIndexOf(str, '.');
+  int len = (decimalInd-startInd) + 3;
+  char speedStr[9];
+  int index = 0;
+  /*
+  Serial.println("parseHeading()");
+  Serial.println(str);
+  Serial.println(startInd);
+  Serial.println(decimalInd);
+  Serial.println(len);
+  */
+  if ((startInd<decimalInd) && (decimalInd<strlen(str)-2) && (len>0)) {
+    while (index < len) {
+      char c = str[startInd++];
+      if (isdigit(c) || c == '.') {
+        speedStr[index++] = c;
+      }
+    }
+    speedStr[index] = '\0';
+
+    return (float)atof(speedStr);
+  }
+
+  return 0.0f;
 }
 //
 //
