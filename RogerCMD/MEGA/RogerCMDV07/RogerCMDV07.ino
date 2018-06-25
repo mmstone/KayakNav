@@ -178,9 +178,11 @@ char filename[15] = "CMDT0000.TXT";
 Keypad cmdKeyPad = Keypad(makeKeymap(keys), rowPins, colPins, ROWS, COLS);
 
 enum Mode {
+  RECORD,
   MANUAL_REC,
   AUTO_REC,
   PLAYBACK,
+  MR_BEEP,
   NONE
 };
 
@@ -231,6 +233,8 @@ int startingWaypointsInd = 0;
 int totalWaypointsInd = 0;
 int numWaypointPages = 0;
 int bleErrCnt = 0;
+float mrBeepHeading = 0;
+boolean mrBeepHeadingSet = false;
 
 //
 //
@@ -1283,9 +1287,10 @@ void setMode(Mode mode) {
     currMode = mode;
     Serial.print("Mode set to ");
     switch (currMode) {
-      case MANUAL_REC:
-        Serial.println("Manual record");
-        sdCardOpenNext();
+      case RECORD:
+        Serial.println("Manual record or Mr. Beep");
+        mrBeepHeading = 0;
+        mrBeepHeadingSet = false;
         break;
       case AUTO_REC:
         Serial.println("Auto record");
@@ -1386,10 +1391,40 @@ void processNumInput(char num) {
           currHeading = parseHeading(&bleResp[0]);
           currHeadingAcqTime = millis();
         }
-        Serial.print("Current heading:");
+        Serial.print("Current heading: ");
         Serial.println(currHeading);
         break;
       case '2': // N/A for record mode
+        break;
+      case '3': // Get speed from NAV GPS
+        getSpeedKnots();
+        break;
+    }
+  }
+  else if (currMode == RECORD) {
+    if (num == '1') {
+      // Mr. Beep mode
+      numpadEntry = "1";
+      Serial.println("Mr. Beep mode");
+    }
+    else if (num == '2') {
+      // Manual record mode
+      numpadEntry = "2";
+      Serial.println("Manual record mode");
+    }
+    else {
+      Serial.println("Invalid mode, try again");
+      numpadEntry = "";
+    }
+  }
+  else if ((currMode == MR_BEEP) && mrBeepHeadingSet) {
+    switch (num) {
+      case '1': // current heading
+        Serial.print("Current heading:");
+        Serial.println(currHeading);
+        break;
+      case '2': // distance to final waypoint
+        // N/A for Mr. Beep mode
         break;
       case '3': // Get speed from NAV GPS
         getSpeedKnots();
@@ -1438,7 +1473,7 @@ void getSpeedKnots() {
     //Serial.println(currSpeed);
     currSpeedAcqTime = millis();
   }
-  Serial.print("Current speed:");
+  Serial.print("Current speed: ");
   Serial.println(currSpeed);
 }
 
@@ -1507,6 +1542,59 @@ void confirmAction() {
     currPlaybackStep = IN_PROGRESS;
     //WaitForResponse("AT#SO=1\r", "CONNECT", 1000, modemResponse, 0);
     vruTripPlayStart();
+  }
+  else if (currMode == RECORD) {
+    if (numpadEntry == "1") {
+      Serial.println("Entering Mr. Beep mode");
+      currMode = MR_BEEP;
+    }
+    else if (numpadEntry == "2") {
+      Serial.println("Entering manual record mode");
+      currMode = MANUAL_REC;
+      sdCardOpenNext();
+    }
+  }
+  else if ((currMode == MR_BEEP) && !mrBeepHeadingSet) {
+    uint32_t currTime = millis();
+    uint32_t elapsedTime = 0;
+    char bleResp[50];
+    int bleRespInd = 0;
+    
+    int bytesWritten = bleCentral.println('H');
+    bleCentral.flush();
+    //Serial.print("bytesWritten = ");
+    //Serial.println(bytesWritten);
+    do {
+      if (bleCentral.available()) {
+        if (bleRespInd < 49) {
+          bleResp[bleRespInd++] = bleCentral.read();
+        }
+        else {
+          bleCentral.read();
+        }
+      }
+      elapsedTime = millis() - currTime;
+    } while (elapsedTime < BLE_WAIT_MS); // Wait for 200ms max
+    bleResp[bleRespInd] = '\0';
+    //Serial.println(bleResp);
+    //Serial.println(strlen(bleResp));
+
+    while (bleCentral.available()) {
+      bleCentral.read();
+    }
+
+    if (strlen(bleResp) < 15) {
+      bleErrCnt++;
+      Serial.println("BLE error");
+      
+      return;
+    }
+    bleErrCnt = 0;
+    
+    mrBeepHeading = parseHeading(&bleResp[0]);
+    mrBeepHeadingSet = true;
+    Serial.print("Mr. Beep set heading: ");
+    Serial.println(mrBeepHeading);
   }
 }
 //
@@ -1713,6 +1801,94 @@ void checkBLEError() {
 }
 //
 //
+
+void mrBeep() {
+  if ((currMode == MR_BEEP) && mrBeepHeadingSet) {
+    uint32_t currTime = millis();
+
+    if ((currTime - timer) >= PLAYBACK_INT_MS) {
+      timer = currTime;
+
+      uint32_t currTime2 = millis();
+      uint32_t elapsedTime = 0;
+      char bleResp[50];
+      int bleRespInd = 0;
+      
+      int bytesWritten = bleCentral.println('H');
+      bleCentral.flush();
+      //Serial.print("bytesWritten = ");
+      //Serial.println(bytesWritten);
+      do {
+        if (bleCentral.available()) {
+          if (bleRespInd < 49) {
+            bleResp[bleRespInd++] = bleCentral.read();
+          }
+          else {
+            bleCentral.read();
+          }
+        }
+        elapsedTime = millis() - currTime2;
+      } while (elapsedTime < BLE_WAIT_MS); // Wait for 200ms max
+      bleResp[bleRespInd] = '\0';
+      //Serial.println(bleResp);
+      //Serial.println(strlen(bleResp));
+
+      while (bleCentral.available()) {
+        bleCentral.read();
+      }
+
+      if (strlen(bleResp) < 15) {
+        bleErrCnt++;        
+        return;
+      }
+      bleErrCnt = 0;
+      
+      currHeading = parseHeading(&bleResp[0]);
+      Direction turnDirection = FRONT;
+      // Get difference between heading
+      float headingDiff = mrBeepHeading - currHeading;
+      float absHeadingDiff = abs(headingDiff);
+
+      if (headingDiff > 0.0) {
+        if (absHeadingDiff < 180.0) {
+          // turn right
+          turnDirection = RIGHT;
+        }
+        else {
+          // turn left
+          turnDirection = LEFT;
+        }
+      }
+      else {
+        if (absHeadingDiff < 180.0) {
+          // turn left
+          turnDirection = LEFT;
+        }
+        else {
+          // turn right
+          turnDirection = RIGHT;
+        }
+      }
+      Serial.print("Off course by: ");
+      Serial.print(absHeadingDiff, 2);
+      Serial.print(", ");
+
+      // How far off course they are
+      if (absHeadingDiff <= 2.0) {
+        queueVoiceResponse(189);                        //  Forward
+        delay(200);
+        // Minor error
+        Serial.println("Keep straight");
+      }
+      else {
+        // Needs course adjustment
+        makeTurn(turnDirection);
+      }
+    }
+  }
+}
+
+
 void recordWaypoint() {
   if ((currMode == MANUAL_REC) || (currMode == AUTO_REC)) {
     uint32_t currTime = millis();
@@ -1969,7 +2145,7 @@ void chkForCMDInput() {
       case 'A':
         // For entering manual record mode
         queueVoiceResponse(30);                                          // say "A"
-        setMode(MANUAL_REC);
+        setMode(RECORD);
         vruManRecMode();
         break;
       case 'B':
@@ -2524,6 +2700,7 @@ void loop() {
   chkForCMDInput();
 //  getRogerNAVData();
   autoRecordWaypoint();
+  mrBeep();
   computeTripInfo();
   checkTripComplete();
   checkBLEError();
