@@ -208,10 +208,12 @@ void testPlayback() {
 //  
 void checkForVRUReq() {
   voiceRequest = false;
+  if (musicPlayer.playingMusic) {
+    return;}
   char vru = ' '; 
   while (cmdSerial.available()) {
     vru = cmdSerial.read();
-    if (vru == '\n') {
+/*    if (vru == '\n') {
        vruVSeq = 254;
        break;
       }
@@ -222,19 +224,18 @@ void checkForVRUReq() {
     if (vru == ';') {
        vruVSeq = 254;
        break;
-      }
+      }  */
      if (vru != 'Q') {
        vruVSeq = 254;
        break;
       }
-    if (vru == 'Q')  {
+//    if (vru == 'Q')  {
       vruVSeq = cmdSerial.parseInt();
       if (trace) {
         Serial.println(vruVSeq, DEC);
         }
       voiceRequest = true;
       break;
-      }
   }
 }
 //  
