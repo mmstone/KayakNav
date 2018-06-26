@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
-//  RogerCMDV09
+//  RogerCMDV07
 //
 //  Roger Command interfaces to the RogerCMD01 Navigational Subsystem via Bluetooth LE. Commands and Navigational data can
 //  be entered via one keypad:
@@ -168,7 +168,6 @@ boolean trace             = true;
 boolean logPlayback       = true;
 boolean modemReady        = false;
 boolean connectionGood    = false;
-boolean navConnected      = false;
 //
 //
 char daysOfTheWeek[7][12] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
@@ -236,7 +235,7 @@ int numWaypointPages = 0;
 int bleErrCnt = 0;
 float mrBeepHeading = 0;
 boolean mrBeepHeadingSet = false;
-//
+
 //
 //
 //
@@ -265,30 +264,30 @@ void playAll() {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 void playRight() {
-  tcaSelect(0);                                 // Right Side
-  playBuzzer();
-  delay(200);
   queueVoiceResponse(66);                       //   Right
-  delay(300);
+  delay(200);
   if (trace) {
     Serial.print("Right Effect #");
     Serial.println(effect);
     }
+  tcaSelect(0);                                 // Right Side
+  playBuzzer();
+  delay(200);
 }
 //
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 void playLeft() {
-  tcaSelect(1);
-  playBuzzer();
-  delay(200);
   queueVoiceResponse(67);                        //  Left
-  delay(300);
+  delay(200);
   if (trace) {
     Serial.print("Left Effect #");
     Serial.println(effect);
     }
+  tcaSelect(1);
+  playBuzzer();
+  delay(200);
 }
 //
 //
@@ -450,95 +449,82 @@ void queueVoiceResponse(uint8_t vRec ) {
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 void vruMainMenu() {
-  delay(1500);
+  delay(200);
   queueVoiceResponse(193);                        //  Main Menu, Press A for Manual Recording, Press B for Auto Recording, Press C to play
-                                                  //  back a trip file, press D to end current mode and return to the Main Menu
-  queueVoiceResponse(254);                        //  VRU pause 250ms 
+  delay(200);                                    //  back a trip file, press D to end current mode and return to the Main Menu
 }
-// 
+//
 //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 void vruManRecMode() {
-  delay(1500);
-  queueVoiceResponse(194);                 //   starting manual recording
-  for (int a = 0; a < 3; a++) {
-    queueVoiceResponse(254);               //   VRU pause 250ms 
-    }
+  delay(200);
+  queueVoiceResponse(194);                 //  starting manual recording
+  delay(1000);
   queueVoiceResponse(195);                 //  Press Star to record a waypoint, Press D to end and return to the main menu
-  queueVoiceResponse(254);                 //  VRU pause 250ms 
+  delay(200);
 }
 //
 //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 void vruAutoRecMode() {
-  delay(1500);
+  delay(200);
   queueVoiceResponse(196);                 //  starting auto recording, Press D to end and return to the main menu
-  queueVoiceResponse(254);                 //   VRU pause 250ms 
+  delay(200);
 }
 //
 //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 void vruPlayTripMode() {
-  delay(1500);
+  delay(200);
   queueVoiceResponse(197);                    // To load trip file enter the two digit file number and press pound (#)
-  queueVoiceResponse(254);                        //   VRU pause 250ms 
+  delay(200);
 }
 //
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 void vruPressPoundAgain() {
-  delay(2000);
-  queueVoiceResponse(198);                   //  Press # again to start trip playback, Press D to end and return to the main menu.              
-  queueVoiceResponse(254);                  //   VRU pause 250ms 
+  delay(200);
+  queueVoiceResponse(198);                   //  Press # again to start trip playback, Press D to end and return to the main menu.
+  delay(200);
 }
 //
 //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 void vruWayPointRecorded() {
-  delay(500);
-  queueVoiceResponse(199);                    //  Waypoint Recorded
-  queueVoiceResponse(254);                   //   VRU pause 250ms 
+  delay(200);
+  queueVoiceResponse(199);               //  Waypoint Recorded
+  delay(200);
 }
 //
 //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 void vruWayPointReached() {
-  delay(500);
+  delay(200);
   queueVoiceResponse(200);                // waypoint reached
-  queueVoiceResponse(254);               //   VRU pause 250ms 
-}
-//
-//
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//
-void vruWayPointSkipped() {
-  delay(500);
-  queueVoiceResponse(40);                //   point 
-  queueVoiceResponse(183);               //   skipped
-  queueVoiceResponse(254);               //   VRU pause 250ms 
+  delay(200);
 }
 //
 //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 void vruTripPlayStart() {
-  delay(1500);
+  delay(200);
   queueVoiceResponse(201);                 //  starting trip file playback,  Press D to end and return to the main menu
-  queueVoiceResponse(254);                        //   VRU pause 250ms 
+  delay(200);
 }
 //
 //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 void vruTripFileReady() {
-  delay(1500);
+  delay(200);
   queueVoiceResponse(202);                   //  trip file loaded and ready to play
-  queueVoiceResponse(254);                   //   VRU pause 250ms 
+  delay(500);
   vruPressPoundAgain();
 }
 //
@@ -546,60 +532,60 @@ void vruTripFileReady() {
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 void vruTripComplete() {
-  delay(1500);
+  delay(200);
   queueVoiceResponse(78);                    // you have arrived
-  queueVoiceResponse(254);                        //   VRU pause 250ms 
+  delay(200);
 }
 //
 //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 void vruTripFileLoadErr() {
-  queueVoiceResponse(254);                        //   VRU pause 250ms 
+  delay(200);
   queueVoiceResponse(203);                   //  trip file load error
-  queueVoiceResponse(254);                        //   VRU pause 250ms 
+  delay(200);
 }
 //
 //
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 void vruTripFileNumErr() {
-  queueVoiceResponse(254);                        //   VRU pause 250ms 
+  delay(200);
   queueVoiceResponse(204);                   //  trip file number error
-  queueVoiceResponse(254);                        //   VRU pause 250ms 
+  delay(200);
 }
 //
 //
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 void vruEmptyWayPoint() {
-  queueVoiceResponse(254);                        //   VRU pause 250ms 
+  delay(200);
   queueVoiceResponse(205);                   //  skipped recording way point
-  queueVoiceResponse(254);                        //   VRU pause 250ms 
+  delay(200);
 }
 //
 //
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 void vruNotRecordingMode() {
-  queueVoiceResponse(254);                        //   VRU pause 250ms 
-  queueVoiceResponse(206);                   //  Recording Mode Error. 
-  queueVoiceResponse(254);                        //   VRU pause 250ms 
+  delay(200);
+  queueVoiceResponse(206);                   //  Recording Mode Error.
+  delay(200);
 }
 //
 //
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 void vruSayFileNumber() {
-  delay(500);
-  queueVoiceResponse(207);                        //  File Number is 
-  delay(500);
+  delay(100);
+  queueVoiceResponse(207);                 //  File Number is
+  delay(700);
   int fn = (filename[6] - 48);
   queueVoiceResponse(fn);
-  delay(100); 
+  delay(300);
   fn = (filename[7] - 48);
   queueVoiceResponse(fn);
-  queueVoiceResponse(254);                        //   VRU pause 250ms 
+  delay(200);
 }
 //
 //
@@ -801,7 +787,7 @@ int findStartingWaypointInd() {
   finalWaypoint = {seqNum:0, time:0, gpsLatDeg:0.0, gpsLonDeg:0.0};
   Serial.print("totalWaypoints: ");
   Serial.println(totalWaypoints);
-  
+
   for (int i=0; i<totalWaypoints; i++) {
     while (playbackFile.available() && index < 30) {
       char c = playbackFile.read();
@@ -819,7 +805,7 @@ int findStartingWaypointInd() {
         line[--index] = '\0';
         //Serial.println(line);
         //Serial.println(strlen(line));
-        
+
         if (i == totalWaypoints-1) {
           finalWaypoint = parseWaypoint(&line[0]);
           Serial.print("Final dest: ");
@@ -835,7 +821,7 @@ int findStartingWaypointInd() {
     }
   }
   playbackFile.seek(0);
-  
+
   // Get current location
   uint32_t currTime2 = millis();
   uint32_t elapsedTime = 0;
@@ -901,7 +887,7 @@ int findStartingWaypointInd() {
       line[index++] = c;
       if (c == '\n') {
         line[--index] = '\0';
-        
+
         waypoint = parseWaypoint(&line[0]);
         float totalDist = dist_between(waypoint.gpsLatDeg, waypoint.gpsLonDeg, finalWaypoint.gpsLatDeg, finalWaypoint.gpsLonDeg);
         if (totalDist < distToDest) {
@@ -968,11 +954,11 @@ void computeTripInfo() {
         elapsedTime = millis() - currTime2;
       } while (elapsedTime < BLE_WAIT_MS); // Wait for 200ms max
       bleResp[bleRespInd] = '\0';
-      
+
       while (bleCentral.available()) {
         bleCentral.read();
       }
-      
+
       //Serial.println(bleResp);
       Serial.print("3");
 
@@ -1022,7 +1008,6 @@ void computeTripInfo() {
 
         if (distToNextWaypoint <= distToWaypoint) {
           // Skip waypoint
-          vruWayPointSkipped();
           Serial.println("Skip to next waypoint");
           totalWaypointsInd++;
           currWaypoint = nextWaypoint;
@@ -1043,7 +1028,7 @@ void computeTripInfo() {
       bleRespInd = 0;
       memset(bleResp, 0, 50);
       delay(100);
-      
+
       bytesWritten = bleCentral.println('H');
       bleCentral.flush();
       Serial.print("bytesWritten = ");
@@ -1085,7 +1070,7 @@ void computeTripInfo() {
       // Check if waypoint reached
       if (distToWaypoint <= 10.0) {
         Serial.println("Waypoint reached.");
-        
+
         // Check if playback complete
         if (totalWaypointsInd == totalWaypoints) {
           currPlaybackStep = COMPLETE;
@@ -1096,7 +1081,7 @@ void computeTripInfo() {
           currWaypoint.gpsLonDeg = 0.0;
           currWaypoint.gpsLatDeg = 0.0;
           currHeading = 0.0;
-          
+
           return;
         }
 
@@ -1343,7 +1328,7 @@ void processNumInput(char num) {
     }
     else if (currPlaybackStep == IN_PROGRESS) {
       float distToDest = 0;
-      
+
       switch (num) {
         case '1': // current heading
           Serial.print("Current heading:");
@@ -1373,7 +1358,7 @@ void processNumInput(char num) {
           uint32_t elapsedTime = 0;
           char bleResp[50];
           int bleRespInd = 0;
-          
+
           int bytesWritten = bleCentral.println('H');
           bleCentral.flush();
           //Serial.print("bytesWritten = ");
@@ -1402,7 +1387,7 @@ void processNumInput(char num) {
             return;
           }
           bleErrCnt = 0;
-          
+
           currHeading = parseHeading(&bleResp[0]);
           currHeadingAcqTime = millis();
         }
@@ -1454,7 +1439,7 @@ void getSpeedKnots() {
     uint32_t elapsedTime = 0;
     char bleResp[50];
     int bleRespInd = 0;
-    
+
     int bytesWritten = bleCentral.println('V');
     bleCentral.flush();
     //Serial.print("bytesWritten = ");
@@ -1483,7 +1468,7 @@ void getSpeedKnots() {
       return;
     }
     bleErrCnt = 0;
-    
+
     currSpeed = parseHeading(&bleResp[0]);
     //Serial.println(currSpeed);
     currSpeedAcqTime = millis();
@@ -1574,7 +1559,7 @@ void confirmAction() {
     uint32_t elapsedTime = 0;
     char bleResp[50];
     int bleRespInd = 0;
-    
+
     int bytesWritten = bleCentral.println('H');
     bleCentral.flush();
     //Serial.print("bytesWritten = ");
@@ -1601,11 +1586,11 @@ void confirmAction() {
     if (strlen(bleResp) < 15) {
       bleErrCnt++;
       Serial.println("BLE error");
-      
+
       return;
     }
     bleErrCnt = 0;
-    
+
     mrBeepHeading = parseHeading(&bleResp[0]);
     mrBeepHeadingSet = true;
     Serial.print("Mr. Beep set heading: ");
@@ -1621,7 +1606,6 @@ void seekToStartingWaypoint() {
       //Serial.print(c);
 
       if (c == '\n') {
-        vruWayPointSkipped();
         Serial.print("Skipped waypoint ");
         Serial.println(i);
 
@@ -1645,7 +1629,6 @@ void loadWaypointsFromFile() {
 
         line += c;
         if (c == '\n') {
-          vruWayPointSkipped();
           Serial.print("Skipped waypoint ");
           Serial.println(i);
 
@@ -1719,11 +1702,10 @@ Waypoint loadNextWaypoint() {
         break;
       }
       else {
-        vruWayPointSkipped();
         Serial.print("Skip waypoint ");
         Serial.print(totalWaypointsInd);
         Serial.println(", bad data");
-        
+
         totalWaypointsInd++;
         memset(line, 0, 31);
         index = 0;
@@ -1743,7 +1725,7 @@ Waypoint parseWaypoint(char *str) {
   //Serial.println(startInd);
   //Serial.println(delimInd);
   //Serial.println(len);
-  
+
   char temp[11];
   memcpy(temp, &str[startInd], len);
   temp[len] = '\0';
@@ -1812,7 +1794,7 @@ void checkBLEError() {
     digitalWrite(12, LOW);
     delay(250);
     digitalWrite(12, HIGH);
-    
+
     Serial.println("Reset");
     bleErrCnt = 0;
   }
@@ -1831,7 +1813,7 @@ void mrBeep() {
       uint32_t elapsedTime = 0;
       char bleResp[50];
       int bleRespInd = 0;
-      
+
       int bytesWritten = bleCentral.println('H');
       bleCentral.flush();
       //Serial.print("bytesWritten = ");
@@ -1856,11 +1838,11 @@ void mrBeep() {
       }
 
       if (strlen(bleResp) < 15) {
-        bleErrCnt++;        
+        bleErrCnt++;
         return;
       }
       bleErrCnt = 0;
-      
+
       currHeading = parseHeading(&bleResp[0]);
       Direction turnDirection = FRONT;
       // Get difference between heading
@@ -1912,7 +1894,7 @@ void recordWaypoint() {
     uint32_t currTime = millis();
     uint32_t elapsedTime = 0;
     Serial.println(currTime);
-    
+
     char bleResp[50];
     int bleRespInd = 0;
     // Get GPS coordinates from NAV server
@@ -1987,7 +1969,7 @@ void recordWaypoint() {
     bleRespInd = 0;
     memset(bleResp, 0, 50);
     delay(100);
-    
+
     bytesWritten = bleCentral.println('H');
     bleCentral.flush();
     Serial.print("bytesWritten = ");
@@ -2020,25 +2002,25 @@ void recordWaypoint() {
       return;
     }
     bleErrCnt = 0;
-    
+
     currHeading = parseHeading(&bleResp[0]);
     currHeadingAcqTime = millis();
     Serial.print("Heading: ");
     Serial.println(currHeading);
-    
+
     /*
     String saveString = parsedCoord + ":" + String(currHeading, 2);
     Serial.print("saveString: ");
     Serial.println(saveString);
     */
-    
+
     if (currHeading >= 0.0f) {
       dtostrf(currHeading, 4, 2, temp1);
       //Serial.println(temp1);
       char currHeadingStr[8];
       sprintf(currHeadingStr, ":%s", temp1);
       //Serial.println(currHeadingStr);
-      
+
       tripFile.print(currHeadingStr);
       tripFile.flush();
       vruWayPointRecorded();
@@ -2084,7 +2066,7 @@ void parseGPSString(char *gpsStr, float *latDeg, float *lonDeg) {
     int index = 0;
     int startInd = firstInd + 2;
     //Serial.println(startInd);
-    
+
     int len = (gpsStr[startInd] == '-') ? 10 : 9;
     //Serial.println(len);
     while(index < len) {
@@ -2443,24 +2425,20 @@ int PrintModemResponse()
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
+/*
 void chkForNAVServer() {
-  delay(1000);
+  boolean navConnected = false;
   uint32_t currTime3;
   uint32_t elapsedTime = 0;
   String bleResp = "";
   int bleConnectCount = 0;
   do {
     queueVoiceResponse(175);                          // connecting to the nav server
-    delay(100);
     queueVoiceResponse(2);
-//    delay(100);
-    queueVoiceResponse(158);
-    delay(200);
-    queueVoiceResponse(174);
     delay(100);
-    queueVoiceResponse(253);
+    queueVoiceResponse(158);
+    queueVoiceResponse(174);
     delay(500);
-    elapsedTime = 0;
     currTime3 = millis();
     bleCentral.println('H');
     do {
@@ -2469,7 +2447,8 @@ void chkForNAVServer() {
        }
        elapsedTime = millis() - currTime3;
       } while (elapsedTime < BLE_WAIT_MS);             // Wait for 200ms max
-      delay(250);
+      float currHeading = parseHeading(bleResp);
+      delay(500);
 //
       elapsedTime = 0;
       bleResp = "";
@@ -2485,27 +2464,28 @@ void chkForNAVServer() {
       float rssi = parseRSSI(bleResp);
       bleRSSI = rssi;
       if (bleRSSI > -120.00) {
-        navConnected = true; }                          // Signal greater than -120dBm is good
+        navConnected = true; }                         // Signal greater than -120dBm is good
       bleConnectCount++;
     } while (!navConnected && bleConnectCount < 5);
   delay(2000);
   if (navConnected) {
     queueVoiceResponse(176);                            //  Connected to ROGERNAV
-    delay(100);
     queueVoiceResponse(2);
+    delay(100);
     queueVoiceResponse(133);
     } else {
     queueVoiceResponse(182);                            //   Bypassed Connecting to ROGERNAV
-    delay(200);
     queueVoiceResponse(175);
     delay(100);
     queueVoiceResponse(2);
     queueVoiceResponse(133);
   }
-  delay(1500);
+  delay(1000);
 }
+*/
 //
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 void kbdVRUHapticCheck() {
   queueVoiceResponse(42);                       //   Press
@@ -2519,10 +2499,9 @@ void kbdVRUHapticCheck() {
   delay(200);
   for (byte a = 0; a <= 2; a++) {
     playLeft();                                 //   Buzz Left
-//    delay(100);
+    delay(100);
     }
-  delay(800);
-  queueVoiceResponse(253);
+  delay(500);
   queueVoiceResponse(42);                       //   Press
   queueVoiceResponse(3);                        //   Three (3)
   delay(100);
@@ -2534,17 +2513,16 @@ void kbdVRUHapticCheck() {
   delay(200);
   for (byte a = 0; a <= 2; a++) {
     playRight();                                 //   Buzz Right
-//    delay(100);
+    delay(100);
     }
-  delay(800);
-  queueVoiceResponse(253);
+  delay(500);
   queueVoiceResponse(135);                       //   Congratulations
-  delay(1000);                                   //   delay 1000ms
+  delay(2000);
   queueVoiceResponse(104);                       //   System
-  delay(200);
   queueVoiceResponse(46);                        //   On
-  delay(1000);
+  delay(1500);
 }
+//
 //
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -2554,7 +2532,7 @@ void configRogerCMD() {
     Serial.println("Starting CMD Config");
     }
   kbdVRUHapticCheck();
-  chkForNAVServer();
+  //chkForNAVServer();
   vruMainMenu();
 }
 //
@@ -2693,7 +2671,7 @@ void setup() {
   checkForRTC();                     // Check for an RTC
   delay(250);
   sdCardInit();                      // initialize the SD card
-  delay(10000);
+  delay(250);
   chkHapticDrv();
   digitalWrite(11, LOW);
   delay(5000);
@@ -2706,9 +2684,6 @@ void setup() {
 //  trace = false;
   delay(5000);
   digitalWrite(11, HIGH);
-  configRogerCMD();
-//  if (navConnected) {
-//    refreshRTC();
   //configRogerCMD();
   //wdt_enable(WDTO_8S);
 }
@@ -2718,17 +2693,19 @@ void setup() {
 //
 void loop() {
 //  testVRUCom();
-  checkModem();
+//  checkModem();
   sendLocationToFlow();
 //  testBLECom();
 //  testCellCom();
   chkForCMDInput();
+//  getRogerNAVData();
   autoRecordWaypoint();
+  mrBeep();
   computeTripInfo();
   checkTripComplete();
   checkBLEError();
   //wdt_reset();
+//  provideHapticFeedback();
 }
 //
 //
-
