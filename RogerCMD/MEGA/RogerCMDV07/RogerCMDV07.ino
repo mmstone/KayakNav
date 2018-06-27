@@ -1947,9 +1947,10 @@ void recordWaypoint() {
       sprintf(parsedCoord, "%s,%s", temp1, temp2);
       //Serial.println(parsedCoord);
       //Serial.println(strlen(parsedCoord));
-      tripFile.print(parsedCoord);
+      tripFile.println(parsedCoord);
       tripFile.flush();
       waypointRecorded = true;
+      vruWayPointRecorded();
 
       Serial.print("Waypoint: ");
       Serial.println(parsedCoord);
@@ -1957,6 +1958,7 @@ void recordWaypoint() {
     }
     else {
       Serial.println("Invalid waypoint");
+      vruEmptyWayPoint();
       return;
     }
 
@@ -1964,6 +1966,7 @@ void recordWaypoint() {
     //currWaypoint.gpsLonDeg = -95.38;
 
     // Get current heading
+    /*
     currTime = millis();
     elapsedTime = 0;
     bleRespInd = 0;
@@ -2012,7 +2015,7 @@ void recordWaypoint() {
     String saveString = parsedCoord + ":" + String(currHeading, 2);
     Serial.print("saveString: ");
     Serial.println(saveString);
-    */
+
 
     if (currHeading >= 0.0f) {
       dtostrf(currHeading, 4, 2, temp1);
@@ -2030,6 +2033,7 @@ void recordWaypoint() {
     }
     tripFile.println();
     tripFile.flush();
+    */
   }
   else {
     vruNotRecordingMode();
