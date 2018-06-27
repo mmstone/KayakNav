@@ -1431,6 +1431,52 @@ void processNumInput(char num) {
         break;
     }
   }
+  else if ((currMode == MR_BEEP) && !mrBeepHeadingSet) {
+    switch (num) {
+      case '1':
+        uint32_t currTime = millis();
+        uint32_t elapsedTime = 0;
+        char bleResp[50];
+        int bleRespInd = 0;
+
+        int bytesWritten = bleCentral.println('H');
+        bleCentral.flush();
+        //Serial.print("bytesWritten = ");
+        //Serial.println(bytesWritten);
+        do {
+          if (bleCentral.available()) {
+            if (bleRespInd < 49) {
+              bleResp[bleRespInd++] = bleCentral.read();
+            }
+            else {
+              bleCentral.read();
+            }
+          }
+          elapsedTime = millis() - currTime;
+        } while (elapsedTime < BLE_WAIT_MS); // Wait for 200ms max
+        bleResp[bleRespInd] = '\0';
+        //Serial.println(bleResp);
+        //Serial.println(strlen(bleResp));
+
+        while (bleCentral.available()) {
+          bleCentral.read();
+        }
+
+        if (strlen(bleResp) < 15) {
+          bleErrCnt++;
+          Serial.println("BLE error");
+          
+          return;
+        }
+        bleErrCnt = 0;
+
+        currHeading = parseHeading(&bleResp[0]);
+        currHeadingAcqTime = millis();
+        Serial.print("Current heading: ");
+        Serial.println(currHeading);
+        break;
+    }
+  }
 }
 
 void getSpeedKnots() {
@@ -1593,6 +1639,8 @@ void confirmAction() {
 
     mrBeepHeading = parseHeading(&bleResp[0]);
     mrBeepHeadingSet = true;
+    currHeadingAcqTime = millis();
+    
     Serial.print("Mr. Beep set heading: ");
     Serial.println(mrBeepHeading);
   }
@@ -1844,6 +1892,8 @@ void mrBeep() {
       bleErrCnt = 0;
 
       currHeading = parseHeading(&bleResp[0]);
+      currHeadingAcqTime = millis();
+      
       Direction turnDirection = FRONT;
       // Get difference between heading
       float headingDiff = mrBeepHeading - currHeading;
@@ -2713,3 +2763,4 @@ void loop() {
 }
 //
 //
+
