@@ -163,12 +163,12 @@ boolean dateRefreshed     = false;        // updated when the date is refreshed 
 //boolean keyPadPressed     = false;
 //boolean buzzRight         = false;
 //boolean buzzLeft          = false;
+boolean navConnected      = false;
 boolean cellReq           = false;
 boolean trace             = true;
 boolean logPlayback       = true;
 boolean modemReady        = false;
 boolean connectionGood    = false;
-boolean navConnected      = false;
 //
 //
 char daysOfTheWeek[7][12] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
@@ -236,7 +236,7 @@ int numWaypointPages = 0;
 int bleErrCnt = 0;
 float mrBeepHeading = 0;
 boolean mrBeepHeadingSet = false;
-//
+
 //
 //
 //
@@ -759,27 +759,6 @@ void getRTCData() {
 //
 //
 //
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//
-void provideHapticFeedback() {
-
-}
-//
-//
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//
-void getRogerNAVData() {
-  while (bleCentral.available() ) {
-    delay(2);
-    size_t len = bleCentral.available();
-    uint8_t sbuf[len];
-    bleCentral.readBytes(sbuf, len);
-    Serial.write(sbuf, len);
-    Serial.flush();
-    }
-}
-//
-//
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 void checkTripComplete() {
@@ -801,7 +780,7 @@ int findStartingWaypointInd() {
   finalWaypoint = {seqNum:0, time:0, gpsLatDeg:0.0, gpsLonDeg:0.0};
   Serial.print("totalWaypoints: ");
   Serial.println(totalWaypoints);
-  
+
   for (int i=0; i<totalWaypoints; i++) {
     while (playbackFile.available() && index < 30) {
       char c = playbackFile.read();
@@ -819,7 +798,7 @@ int findStartingWaypointInd() {
         line[--index] = '\0';
         //Serial.println(line);
         //Serial.println(strlen(line));
-        
+
         if (i == totalWaypoints-1) {
           finalWaypoint = parseWaypoint(&line[0]);
           Serial.print("Final dest: ");
@@ -835,7 +814,7 @@ int findStartingWaypointInd() {
     }
   }
   playbackFile.seek(0);
-  
+
   // Get current location
   uint32_t currTime2 = millis();
   uint32_t elapsedTime = 0;
@@ -901,7 +880,7 @@ int findStartingWaypointInd() {
       line[index++] = c;
       if (c == '\n') {
         line[--index] = '\0';
-        
+
         waypoint = parseWaypoint(&line[0]);
         float totalDist = dist_between(waypoint.gpsLatDeg, waypoint.gpsLonDeg, finalWaypoint.gpsLatDeg, finalWaypoint.gpsLonDeg);
         if (totalDist < distToDest) {
@@ -968,11 +947,11 @@ void computeTripInfo() {
         elapsedTime = millis() - currTime2;
       } while (elapsedTime < BLE_WAIT_MS); // Wait for 200ms max
       bleResp[bleRespInd] = '\0';
-      
+
       while (bleCentral.available()) {
         bleCentral.read();
       }
-      
+
       //Serial.println(bleResp);
       Serial.print("3");
 
@@ -1043,7 +1022,7 @@ void computeTripInfo() {
       bleRespInd = 0;
       memset(bleResp, 0, 50);
       delay(100);
-      
+
       bytesWritten = bleCentral.println('H');
       bleCentral.flush();
       Serial.print("bytesWritten = ");
@@ -1085,7 +1064,7 @@ void computeTripInfo() {
       // Check if waypoint reached
       if (distToWaypoint <= 10.0) {
         Serial.println("Waypoint reached.");
-        
+
         // Check if playback complete
         if (totalWaypointsInd == totalWaypoints) {
           currPlaybackStep = COMPLETE;
@@ -1096,7 +1075,7 @@ void computeTripInfo() {
           currWaypoint.gpsLonDeg = 0.0;
           currWaypoint.gpsLatDeg = 0.0;
           currHeading = 0.0;
-          
+
           return;
         }
 
@@ -1343,7 +1322,7 @@ void processNumInput(char num) {
     }
     else if (currPlaybackStep == IN_PROGRESS) {
       float distToDest = 0;
-      
+
       switch (num) {
         case '1': // current heading
           Serial.print("Current heading:");
@@ -1373,7 +1352,7 @@ void processNumInput(char num) {
           uint32_t elapsedTime = 0;
           char bleResp[50];
           int bleRespInd = 0;
-          
+
           int bytesWritten = bleCentral.println('H');
           bleCentral.flush();
           //Serial.print("bytesWritten = ");
@@ -1402,7 +1381,7 @@ void processNumInput(char num) {
             return;
           }
           bleErrCnt = 0;
-          
+
           currHeading = parseHeading(&bleResp[0]);
           currHeadingAcqTime = millis();
         }
@@ -1454,7 +1433,7 @@ void getSpeedKnots() {
     uint32_t elapsedTime = 0;
     char bleResp[50];
     int bleRespInd = 0;
-    
+
     int bytesWritten = bleCentral.println('V');
     bleCentral.flush();
     //Serial.print("bytesWritten = ");
@@ -1483,7 +1462,7 @@ void getSpeedKnots() {
       return;
     }
     bleErrCnt = 0;
-    
+
     currSpeed = parseHeading(&bleResp[0]);
     //Serial.println(currSpeed);
     currSpeedAcqTime = millis();
@@ -1574,7 +1553,7 @@ void confirmAction() {
     uint32_t elapsedTime = 0;
     char bleResp[50];
     int bleRespInd = 0;
-    
+
     int bytesWritten = bleCentral.println('H');
     bleCentral.flush();
     //Serial.print("bytesWritten = ");
@@ -1597,15 +1576,14 @@ void confirmAction() {
     while (bleCentral.available()) {
       bleCentral.read();
     }
-
     if (strlen(bleResp) < 15) {
       bleErrCnt++;
-      Serial.println("BLE error");
-      
+      Serial.println("BLE Data error"); 
+
       return;
     }
     bleErrCnt = 0;
-    
+
     mrBeepHeading = parseHeading(&bleResp[0]);
     mrBeepHeadingSet = true;
     Serial.print("Mr. Beep set heading: ");
@@ -1723,7 +1701,7 @@ Waypoint loadNextWaypoint() {
         Serial.print("Skip waypoint ");
         Serial.print(totalWaypointsInd);
         Serial.println(", bad data");
-        
+
         totalWaypointsInd++;
         memset(line, 0, 31);
         index = 0;
@@ -1743,7 +1721,7 @@ Waypoint parseWaypoint(char *str) {
   //Serial.println(startInd);
   //Serial.println(delimInd);
   //Serial.println(len);
-  
+
   char temp[11];
   memcpy(temp, &str[startInd], len);
   temp[len] = '\0';
@@ -1812,7 +1790,7 @@ void checkBLEError() {
     digitalWrite(12, LOW);
     delay(250);
     digitalWrite(12, HIGH);
-    
+
     Serial.println("Reset");
     bleErrCnt = 0;
   }
@@ -1831,7 +1809,7 @@ void mrBeep() {
       uint32_t elapsedTime = 0;
       char bleResp[50];
       int bleRespInd = 0;
-      
+
       int bytesWritten = bleCentral.println('H');
       bleCentral.flush();
       //Serial.print("bytesWritten = ");
@@ -1856,11 +1834,11 @@ void mrBeep() {
       }
 
       if (strlen(bleResp) < 15) {
-        bleErrCnt++;        
+        bleErrCnt++;
         return;
       }
       bleErrCnt = 0;
-      
+
       currHeading = parseHeading(&bleResp[0]);
       Direction turnDirection = FRONT;
       // Get difference between heading
@@ -1912,7 +1890,7 @@ void recordWaypoint() {
     uint32_t currTime = millis();
     uint32_t elapsedTime = 0;
     Serial.println(currTime);
-    
+
     char bleResp[50];
     int bleRespInd = 0;
     // Get GPS coordinates from NAV server
@@ -1987,7 +1965,7 @@ void recordWaypoint() {
     bleRespInd = 0;
     memset(bleResp, 0, 50);
     delay(100);
-    
+
     bytesWritten = bleCentral.println('H');
     bleCentral.flush();
     Serial.print("bytesWritten = ");
@@ -2020,25 +1998,25 @@ void recordWaypoint() {
       return;
     }
     bleErrCnt = 0;
-    
+
     currHeading = parseHeading(&bleResp[0]);
     currHeadingAcqTime = millis();
     Serial.print("Heading: ");
     Serial.println(currHeading);
-    
+
     /*
     String saveString = parsedCoord + ":" + String(currHeading, 2);
     Serial.print("saveString: ");
     Serial.println(saveString);
     */
-    
+
     if (currHeading >= 0.0f) {
       dtostrf(currHeading, 4, 2, temp1);
       //Serial.println(temp1);
       char currHeadingStr[8];
       sprintf(currHeadingStr, ":%s", temp1);
       //Serial.println(currHeadingStr);
-      
+
       tripFile.print(currHeadingStr);
       tripFile.flush();
       vruWayPointRecorded();
@@ -2084,7 +2062,7 @@ void parseGPSString(char *gpsStr, float *latDeg, float *lonDeg) {
     int index = 0;
     int startInd = firstInd + 2;
     //Serial.println(startInd);
-    
+
     int len = (gpsStr[startInd] == '-') ? 10 : 9;
     //Serial.println(len);
     while(index < len) {
@@ -2485,12 +2463,12 @@ void chkForNAVServer() {
       float rssi = parseRSSI(bleResp);
       bleRSSI = rssi;
       if (bleRSSI > -120.00) {
-        navConnected = true; }                          // Signal greater than -120dBm is good
+        navConnected = true; }                         // Signal greater than -120dBm is good
       bleConnectCount++;
     } while (!navConnected && bleConnectCount < 5);
   delay(2000);
   if (navConnected) {
-    queueVoiceResponse(176);                            //  Connected to ROGERNAV
+    queueVoiceResponse(176);                             //  Connected to ROGERNAV
     delay(100);
     queueVoiceResponse(2);
     queueVoiceResponse(133);
@@ -2504,6 +2482,7 @@ void chkForNAVServer() {
   }
   delay(1500);
 }
+//
 //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -2545,6 +2524,7 @@ void kbdVRUHapticCheck() {
   queueVoiceResponse(46);                        //   On
   delay(1000);
 }
+//
 //
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -2693,7 +2673,7 @@ void setup() {
   checkForRTC();                     // Check for an RTC
   delay(250);
   sdCardInit();                      // initialize the SD card
-  delay(10000);
+  delay(7000);
   chkHapticDrv();
   digitalWrite(11, LOW);
   delay(5000);
@@ -2707,9 +2687,6 @@ void setup() {
   delay(5000);
   digitalWrite(11, HIGH);
   configRogerCMD();
-//  if (navConnected) {
-//    refreshRTC();
-  //configRogerCMD();
   //wdt_enable(WDTO_8S);
 }
 //
@@ -2724,6 +2701,7 @@ void loop() {
 //  testCellCom();
   chkForCMDInput();
   autoRecordWaypoint();
+  mrBeep();
   computeTripInfo();
   checkTripComplete();
   checkBLEError();
