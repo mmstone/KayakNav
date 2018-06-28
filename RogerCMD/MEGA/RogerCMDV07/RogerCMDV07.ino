@@ -76,8 +76,8 @@ File playbackFile;
 //  global data/variables
 byte effect            = 109;          // effect requested by Ahmet
 char keyPadInput       = ' ';
-uint32_t timer         = millis();     // unsigned 32bit interger variable called timer assigned to the millisecond function
-uint32_t timer2        = millis();
+uint32_t timer         = 0;     // unsigned 32bit interger variable called timer assigned to the millisecond function
+uint32_t timer2        = 0;
 //uint32_t tripRecSeq    = 0;            // used to sequence the record numbers in the log file
 uint16_t voiceRec      = 0;            // number being sent to VRU for voice playback
 uint8_t navHour        = 0;            // current UCT (GMT) hour data from GPS
@@ -1509,14 +1509,15 @@ void processNumInput(char num) {
   else if (currMode == RECORD) {
     if (num == '1') {
       // Mr. Beep mode
-      numpadEntry = "1";
       Serial.println("Mr. Beep mode");
+      currMode = MR_BEEP;
       vruMrBeepMode();                                       //  Starting Mr. Beep
     }
     else if (num == '2') {
       // Manual record mode
-      numpadEntry = "2";
       Serial.println("Manual record mode");
+      currMode = MANUAL_REC;
+      sdCardOpenNext();
       vruManRecMode();                                       //  Starting Manual Recording
     }
     else {
@@ -1745,19 +1746,6 @@ void confirmAction() {
     //WaitForResponse("AT#SO=1\r", "CONNECT", 1000, modemResponse, 0);
     vruTripPlayStart();
   }
-  else if (currMode == RECORD) {
-    if (numpadEntry == "1") {
-      Serial.println("Entering Mr. Beep mode");
-      currMode = MR_BEEP;
-      vruMrBeepMode();
-    }
-    else if (numpadEntry == "2") {
-      Serial.println("Entering manual record mode");
-      currMode = MANUAL_REC;
-      sdCardOpenNext();
-      vruManRecMode();
-    }
-  }
   else if ((currMode == MR_BEEP) && !mrBeepHeadingSet) {
     uint32_t currTime = millis();
     uint32_t elapsedTime = 0;
@@ -1897,8 +1885,9 @@ Waypoint loadNextWaypoint() {
     line[index++] = c;
     if (c == '\n') {
       line[--index] = '\0';
+      //Serial.println(strlen(line));
 
-      if (strlen(line) > 22) {
+      if (strlen(line) > 20) {
         waypoint = parseWaypoint(&line[0]);
         waypoint.seqNum = totalWaypointsInd;
         Serial.print("Loaded waypoint: ");
@@ -1946,7 +1935,8 @@ Waypoint parseWaypoint(char *str) {
 
   memset(temp, 0, 11);
   startInd = delimInd + 1;
-  delimInd = charArrIndexOf(str, ':');
+  //delimInd = charArrIndexOf(str, ':');
+  delimInd = strlen(str) - 1;
   len = delimInd - startInd;
   //Serial.println(startInd);
   //Serial.println(len);
@@ -2744,7 +2734,7 @@ void configRogerCMD() {
   if (trace) {
     Serial.println("Starting CMD Config");
     }
-  kbdVRUHapticCheck();
+  //kbdVRUHapticCheck();
   chkForNAVServer();
   vruMainMenu();
 }
@@ -2907,7 +2897,7 @@ void setup() {
 //
 void loop() {
 //  testVRUCom();
-  checkModem();
+  //checkModem();
   sendLocationToFlow();
 //  testBLECom();
 //  testCellCom();
@@ -2921,3 +2911,5 @@ void loop() {
 }
 //
 //
+
+
