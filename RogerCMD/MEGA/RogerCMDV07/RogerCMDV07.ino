@@ -236,7 +236,7 @@ int numWaypointPages = 0;
 int bleErrCnt = 0;
 float mrBeepHeading = 0;
 boolean mrBeepHeadingSet = false;
-
+//
 //
 //
 //
@@ -282,9 +282,9 @@ void playRight() {
 void playLeft() {
   tcaSelect(1);
   playBuzzer();
-  delay(200);
-  queueVoiceResponse(67);                        //  Left
   delay(300);
+  queueVoiceResponse(67);                        //  Left
+  delay(200);
   if (trace) {
     Serial.print("Left Effect #");
     Serial.println(effect);
@@ -451,9 +451,41 @@ void queueVoiceResponse(uint8_t vRec ) {
 //
 void vruMainMenu() {
   delay(1500);
-  queueVoiceResponse(193);                        //  Main Menu, Press A for Manual Recording, Press B for Auto Recording, Press C to play
+  queueVoiceResponse(193);                        //  Main Menu, Press A for Mr. Beep or Manual Recording, Press B for Auto Recording, Press C to play
                                                   //  back a trip file, press D to end current mode and return to the Main Menu
-  queueVoiceResponse(254);                        //  VRU pause 250ms
+  delay(250);
+}
+//
+//
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+void vruBeepOrManMode() {
+  delay(1500);
+  queueVoiceResponse(208);                 //  Press 1 to start Mr. Beep Mode, or Press 2 to start Manual Recording Mode
+  delay(250);
+}
+//
+//
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+void vruMrBeepMode() {
+  delay(1500);
+  queueVoiceResponse(209);                 //  Starting Mr. Beep.  Point your kayak in the direction you want and press 1 to hear your heading.
+                                           //  Press Pound once you are on the right heading to confirm and start your trip
+  delay(250);
+}
+//
+//
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+void vruHeadConfirmAndStart() {
+  delay(1000);
+  queueVoiceResponse(37);                 //  Heading
+  queueVoiceResponse(188);                //  Confirmed
+  delay(500);
+  queueVoiceResponse(76);                 //  Starting
+  queueVoiceResponse(62);                 //  Trip
+  delay(250);
 }
 //
 //
@@ -462,11 +494,9 @@ void vruMainMenu() {
 void vruManRecMode() {
   delay(1500);
   queueVoiceResponse(194);                 //   starting manual recording
-  for (int a = 0; a < 3; a++) {
-    queueVoiceResponse(254);               //   VRU pause 250ms
-    }
+  delay(500);
   queueVoiceResponse(195);                 //  Press Star to record a waypoint, Press D to end and return to the main menu
-  queueVoiceResponse(254);                 //  VRU pause 250ms
+  delay(250);
 }
 //
 //
@@ -475,7 +505,7 @@ void vruManRecMode() {
 void vruAutoRecMode() {
   delay(1500);
   queueVoiceResponse(196);                 //  starting auto recording, Press D to end and return to the main menu
-  queueVoiceResponse(254);                 //   VRU pause 250ms
+  delay(250);
 }
 //
 //
@@ -483,8 +513,8 @@ void vruAutoRecMode() {
 //
 void vruPlayTripMode() {
   delay(1500);
-  queueVoiceResponse(197);                    // To load trip file enter the two digit file number and press pound (#)
-  queueVoiceResponse(254);                        //   VRU pause 250ms
+  queueVoiceResponse(197);                    //   To load trip file enter the two digit file number and press pound (#)
+  delay(250);
 }
 //
 //////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -492,7 +522,7 @@ void vruPlayTripMode() {
 void vruPressPoundAgain() {
   delay(2000);
   queueVoiceResponse(198);                   //  Press # again to start trip playback, Press D to end and return to the main menu.
-  queueVoiceResponse(254);                  //   VRU pause 250ms
+  delay(250);
 }
 //
 //
@@ -501,7 +531,7 @@ void vruPressPoundAgain() {
 void vruWayPointRecorded() {
   delay(500);
   queueVoiceResponse(199);                    //  Waypoint Recorded
-  queueVoiceResponse(254);                   //   VRU pause 250ms
+  delay(250);
 }
 //
 //
@@ -510,7 +540,7 @@ void vruWayPointRecorded() {
 void vruWayPointReached() {
   delay(500);
   queueVoiceResponse(200);                // waypoint reached
-  queueVoiceResponse(254);               //   VRU pause 250ms
+  delay(250);
 }
 //
 //
@@ -518,9 +548,8 @@ void vruWayPointReached() {
 //
 void vruWayPointSkipped() {
   delay(500);
-  queueVoiceResponse(40);                //   point
-  queueVoiceResponse(183);               //   skipped
-  queueVoiceResponse(254);               //   VRU pause 250ms
+  queueVoiceResponse(212);                //   skipping waypoint
+  delay(250);
 }
 //
 //
@@ -529,7 +558,7 @@ void vruWayPointSkipped() {
 void vruTripPlayStart() {
   delay(1500);
   queueVoiceResponse(201);                 //  starting trip file playback,  Press D to end and return to the main menu
-  queueVoiceResponse(254);                        //   VRU pause 250ms
+  delay(250);
 }
 //
 //
@@ -538,7 +567,7 @@ void vruTripPlayStart() {
 void vruTripFileReady() {
   delay(1500);
   queueVoiceResponse(202);                   //  trip file loaded and ready to play
-  queueVoiceResponse(254);                   //   VRU pause 250ms
+  delay(250);
   vruPressPoundAgain();
 }
 //
@@ -548,43 +577,43 @@ void vruTripFileReady() {
 void vruTripComplete() {
   delay(1500);
   queueVoiceResponse(78);                    // you have arrived
-  queueVoiceResponse(254);                        //   VRU pause 250ms
+  delay(250);
 }
 //
 //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 void vruTripFileLoadErr() {
-  queueVoiceResponse(254);                        //   VRU pause 250ms
-  queueVoiceResponse(203);                   //  trip file load error
-  queueVoiceResponse(254);                        //   VRU pause 250ms
+  delay(250);
+  queueVoiceResponse(203);                        //  trip file load error
+  delay(250);
 }
 //
 //
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 void vruTripFileNumErr() {
-  queueVoiceResponse(254);                        //   VRU pause 250ms
-  queueVoiceResponse(204);                   //  trip file number error
-  queueVoiceResponse(254);                        //   VRU pause 250ms
+  delay(250);
+  queueVoiceResponse(204);                        //  trip file number error
+  delay(250);
 }
 //
 //
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 void vruEmptyWayPoint() {
-  queueVoiceResponse(254);                        //   VRU pause 250ms
-  queueVoiceResponse(205);                   //  skipped recording way point
-  queueVoiceResponse(254);                        //   VRU pause 250ms
+  delay(250);
+  queueVoiceResponse(205);                        //  skipped recording way point
+  delay(250);
 }
 //
 //
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 void vruNotRecordingMode() {
-  queueVoiceResponse(254);                        //   VRU pause 250ms
+  delay(250);
   queueVoiceResponse(206);                   //  Recording Mode Error.
-  queueVoiceResponse(254);                        //   VRU pause 250ms
+  delay(250);
 }
 //
 //
@@ -599,7 +628,82 @@ void vruSayFileNumber() {
   delay(100);
   fn = (filename[7] - 48);
   queueVoiceResponse(fn);
-  queueVoiceResponse(254);                        //   VRU pause 250ms
+  delay(250);
+}
+//
+//
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+void vruSayHeading() {
+  delay(200);
+  queueVoiceResponse(37);                        //  Heading
+  delay(200);
+  uint16_t sayHeading = currHeading;
+  int fn = (sayHeading / 100);
+  if (fn != 0) {
+    queueVoiceResponse(fn);
+    delay(100);}
+  sayHeading = (sayHeading % 100);
+  fn = (sayHeading / 10);
+  queueVoiceResponse(fn);
+  delay(200);
+  fn = (sayHeading % 10);
+  queueVoiceResponse(fn);
+  delay(100);
+  queueVoiceResponse(38);                         //  Degrees
+  delay(100);
+}
+//
+//
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+void vruSayDistToDest() {
+  delay(200);
+  queueVoiceResponse(95);                        //  Remaining
+  queueVoiceResponse(93);                        //  Distance
+  delay(100);
+
+
+
+  queueVoiceResponse(38);                         //  Meters
+  delay(100);
+}
+//
+//
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+void vruSaySpeed() {
+  boolean leadingZero = true;
+  delay(200);
+  queueVoiceResponse(49);                        //  Speed is
+  delay(100);
+  queueVoiceResponse(172);                       //
+  delay(100);
+  uint16_t msdSpeed = currSpeed;
+  uint8_t lsdSpeed = ((currSpeed - msdSpeed) * 10);
+  int fn = (msdSpeed / 100);
+  if (fn != 0) {
+    leadingZero = false;
+    queueVoiceResponse(fn);
+    delay(100);
+    }
+  msdSpeed = (msdSpeed % 100);
+  fn = (msdSpeed / 10);
+  if (leadingZero && (fn == 0)) {
+    delay(1);
+    } else {
+    queueVoiceResponse(fn);
+    leadingZero = false;
+    delay(100);}
+  fn = (msdSpeed % 10);
+  queueVoiceResponse(fn);
+  delay(100);
+  queueVoiceResponse(40);                        // Point
+  delay(100);
+  queueVoiceResponse(lsdSpeed);
+  delay(100);
+  queueVoiceResponse(120);                      //  Knots
+  delay(100);
 }
 //
 //
@@ -697,13 +801,12 @@ void checkForRTC() {
   if (!rtc.initialized()) {
     if (trace) {
       Serial.println("RTC is NOT running!");
-    }
+    }}
     // following line sets the RTC to the date & time this sketch was compiled
-    rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
+  rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
     // This line sets the RTC with an explicit date & time, for example to set
     // January 21, 2014 at 3am you would call:
     // rtc.adjust(DateTime(2014, 1, 21, 3, 0, 0));
-  }
   getRTCData();
 }
 //
@@ -1055,6 +1158,7 @@ void computeTripInfo() {
       currHeadingAcqTime = millis();
       Serial.print("Heading: ");
       Serial.println(currHeading);
+//    vruSayHeading();
 
       if (currHeading >= 0.0f) {
         // Tell user what to do based on nav info
@@ -1285,6 +1389,7 @@ void setMode(Mode mode) {
         Serial.println("Manual record or Mr. Beep");
         mrBeepHeading = 0;
         mrBeepHeadingSet = false;
+        vruBeepOrManMode();
         break;
       case AUTO_REC:
         Serial.println("Auto record");
@@ -1325,14 +1430,17 @@ void processNumInput(char num) {
 
       switch (num) {
         case '1': // current heading
+          vruSayHeading();
           Serial.print("Current heading:");
           Serial.println(currHeading);
+          vruSayHeading();
           break;
         case '2': // distance to final waypoint
           distToDest = dist_between(currWaypoint.gpsLatDeg, currWaypoint.gpsLonDeg, finalWaypoint.gpsLatDeg, finalWaypoint.gpsLonDeg);
           if (distToDest < 20000) {
             Serial.print("Distance to final destination: ");
             Serial.println(distToDest);
+            vruSayDistToDest();
           }
           else {
             Serial.println("Error in distance calculation");
@@ -1340,6 +1448,7 @@ void processNumInput(char num) {
           break;
         case '3': // Get speed from NAV GPS
           getSpeedKnots();
+          vruSaySpeed();
           break;
       }
     }
@@ -1385,6 +1494,7 @@ void processNumInput(char num) {
           currHeading = parseHeading(&bleResp[0]);
           currHeadingAcqTime = millis();
         }
+        vruSayHeading();
         Serial.print("Current heading: ");
         Serial.println(currHeading);
         break;
@@ -1392,6 +1502,7 @@ void processNumInput(char num) {
         break;
       case '3': // Get speed from NAV GPS
         getSpeedKnots();
+        vruSaySpeed();
         break;
     }
   }
@@ -1400,11 +1511,13 @@ void processNumInput(char num) {
       // Mr. Beep mode
       numpadEntry = "1";
       Serial.println("Mr. Beep mode");
+      vruMrBeepMode();                                       //  Starting Mr. Beep
     }
     else if (num == '2') {
       // Manual record mode
       numpadEntry = "2";
       Serial.println("Manual record mode");
+      vruManRecMode();                                       //  Starting Manual Recording
     }
     else {
       Serial.println("Invalid mode, try again");
@@ -1416,12 +1529,14 @@ void processNumInput(char num) {
       case '1': // current heading
         Serial.print("Current heading:");
         Serial.println(currHeading);
+        vruSayHeading();
         break;
       case '2': // distance to final waypoint
         // N/A for Mr. Beep mode
         break;
       case '3': // Get speed from NAV GPS
         getSpeedKnots();
+        vruSaySpeed();
         break;
     }
   }
@@ -1459,7 +1574,54 @@ void processNumInput(char num) {
         if (strlen(bleResp) < 15) {
           bleErrCnt++;
           Serial.println("BLE error");
-          
+
+          return;
+        }
+        bleErrCnt = 0;
+
+        currHeading = parseHeading(&bleResp[0]);
+        currHeadingAcqTime = millis();
+        Serial.print("Current heading: ");
+        Serial.println(currHeading);
+        vruSayHeading();
+        break;
+    }
+  }
+  else if ((currMode == MR_BEEP) && !mrBeepHeadingSet) {
+    switch (num) {
+      case '1':
+        uint32_t currTime = millis();
+        uint32_t elapsedTime = 0;
+        char bleResp[50];
+        int bleRespInd = 0;
+
+        int bytesWritten = bleCentral.println('H');
+        bleCentral.flush();
+        //Serial.print("bytesWritten = ");
+        //Serial.println(bytesWritten);
+        do {
+          if (bleCentral.available()) {
+            if (bleRespInd < 49) {
+              bleResp[bleRespInd++] = bleCentral.read();
+            }
+            else {
+              bleCentral.read();
+            }
+          }
+          elapsedTime = millis() - currTime;
+        } while (elapsedTime < BLE_WAIT_MS); // Wait for 200ms max
+        bleResp[bleRespInd] = '\0';
+        //Serial.println(bleResp);
+        //Serial.println(strlen(bleResp));
+
+        while (bleCentral.available()) {
+          bleCentral.read();
+        }
+
+        if (strlen(bleResp) < 15) {
+          bleErrCnt++;
+          Serial.println("BLE error");
+
           return;
         }
         bleErrCnt = 0;
@@ -1587,11 +1749,13 @@ void confirmAction() {
     if (numpadEntry == "1") {
       Serial.println("Entering Mr. Beep mode");
       currMode = MR_BEEP;
+      vruMrBeepMode();
     }
     else if (numpadEntry == "2") {
       Serial.println("Entering manual record mode");
       currMode = MANUAL_REC;
       sdCardOpenNext();
+      vruManRecMode();
     }
   }
   else if ((currMode == MR_BEEP) && !mrBeepHeadingSet) {
@@ -1634,9 +1798,11 @@ void confirmAction() {
     mrBeepHeading = parseHeading(&bleResp[0]);
     mrBeepHeadingSet = true;
     currHeadingAcqTime = millis();
-    
+
     Serial.print("Mr. Beep set heading: ");
     Serial.println(mrBeepHeading);
+
+    vruHeadConfirmAndStart();
   }
 }
 //
@@ -1890,7 +2056,7 @@ void mrBeep() {
 
       currHeading = parseHeading(&bleResp[0]);
       currHeadingAcqTime = millis();
-      
+
       Direction turnDirection = FRONT;
       // Get difference between heading
       float headingDiff = mrBeepHeading - currHeading;
@@ -2197,7 +2363,7 @@ void chkForCMDInput() {
         // For entering manual record mode
         queueVoiceResponse(30);                                          // say "A"
         setMode(RECORD);
-        vruManRecMode();
+        vruBeepOrManMode();
         break;
       case 'B':
         // For entering auto record mode
@@ -2483,15 +2649,7 @@ void chkForNAVServer() {
   String bleResp = "";
   int bleConnectCount = 0;
   do {
-    queueVoiceResponse(175);                          // connecting to the nav server
-    delay(100);
-    queueVoiceResponse(2);
-//    delay(100);
-    queueVoiceResponse(158);
-    delay(200);
-    queueVoiceResponse(174);
-    delay(100);
-    queueVoiceResponse(253);
+    queueVoiceResponse(210);                          // connecting to the nav server
     delay(500);
     elapsedTime = 0;
     currTime3 = millis();
@@ -2523,10 +2681,8 @@ void chkForNAVServer() {
     } while (!navConnected && bleConnectCount < 5);
   delay(2000);
   if (navConnected) {
-    queueVoiceResponse(176);                             //  Connected to ROGERNAV
+    queueVoiceResponse(211);                             //  Connected to ROGERNAV
     delay(100);
-    queueVoiceResponse(2);
-    queueVoiceResponse(133);
     } else {
     queueVoiceResponse(182);                            //   Bypassed Connecting to ROGERNAV
     delay(200);
@@ -2575,7 +2731,7 @@ void kbdVRUHapticCheck() {
   queueVoiceResponse(135);                       //   Congratulations
   delay(1000);                                   //   delay 1000ms
   queueVoiceResponse(104);                       //   System
-  delay(200);
+//  delay(200);
   queueVoiceResponse(46);                        //   On
   delay(1000);
 }
@@ -2725,8 +2881,9 @@ void chkHapticDrv() {
 void setup() {
   configSerialPorts();               // initialize serial:
   configIOPins();                    // configure the IO pins
+  delay(7000);
   checkForRTC();                     // Check for an RTC
-  delay(250);
+  delay(7000);
   sdCardInit();                      // initialize the SD card
   delay(7000);
   chkHapticDrv();
@@ -2764,5 +2921,3 @@ void loop() {
 }
 //
 //
-
-
