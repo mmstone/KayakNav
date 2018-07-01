@@ -551,7 +551,7 @@ void vruWayPointReached() {
 void vruWayPointSkipped() {
   delay(250);
   queueVoiceResponse(212);                  //   skipping waypoint
-  delay(500);
+  delay(750);
 }
 //
 //
