@@ -703,7 +703,7 @@ void vruSayFileNumber() {
 void vruSayHeading() {
   delay(250);
   queueVoiceResponse(37);                        //  Heading
-  delay(50);
+  delay(300);
   uint16_t sayHeading = currHeading;
   uint16_t fn = (sayHeading / 100);
   if (fn != 0) {
@@ -721,7 +721,7 @@ void vruSayHeading() {
   Serial.print("  Ones: ");
   Serial.println(fn, DEC);
   queueVoiceResponse(fn);
-  delay(150);
+  delay(300);
   queueVoiceResponse(38);                         //  Degrees
   delay(1000);
 }
