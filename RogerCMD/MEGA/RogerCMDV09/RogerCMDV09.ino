@@ -531,27 +531,27 @@ void vruPressPoundAgain() {
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 void vruWayPointRecorded() {
-  delay(500);
+  delay(150);
   queueVoiceResponse(199);                    //  Waypoint Recorded
-  delay(500);
+  delay(450);
 }
 //
 //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 void vruWayPointReached() {
-  delay(250);
+  delay(150);
   queueVoiceResponse(200);                   // waypoint reached
-  delay(500);
+  delay(450);
 }
 //
 //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 void vruWayPointSkipped() {
-  delay(250);
+  delay(150);
   queueVoiceResponse(212);                  //   skipping waypoint
-  delay(750);
+  delay(450);
 }
 //
 //
@@ -701,9 +701,9 @@ void vruSayFileNumber() {
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 void vruSayHeading() {
-  delay(250);
+  delay(500);
   queueVoiceResponse(37);                        //  Heading
-  delay(300);
+  delay(350);
   uint16_t sayHeading = currHeading;
   uint16_t fn = (sayHeading / 100);
   if (fn != 0) {
@@ -716,12 +716,12 @@ void vruSayHeading() {
   Serial.print("  Tens: ");
   Serial.print(fn, DEC);
   queueVoiceResponse(fn);
-  delay(350);
+  delay(50);
   fn = (sayHeading % 10);
   Serial.print("  Ones: ");
   Serial.println(fn, DEC);
   queueVoiceResponse(fn);
-  delay(100);
+  delay(50);
   queueVoiceResponse(38);                         //  Degrees
   delay(1000);
 }
