@@ -721,7 +721,7 @@ void vruSayHeading() {
   Serial.print("  Ones: ");
   Serial.println(fn, DEC);
   queueVoiceResponse(fn);
-  delay(300);
+  delay(350);
   queueVoiceResponse(38);                         //  Degrees
   delay(1000);
 }
