@@ -522,7 +522,7 @@ void vruPlayTripMode() {
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 void vruPressPoundAgain() {
-  delay(500);
+  delay(1500);
   queueVoiceResponse(198);                   //  Press # again to start trip playback, Press D to end and return to the main menu.
   delay(5000);
 }
