@@ -716,12 +716,12 @@ void vruSayHeading() {
   Serial.print("  Tens: ");
   Serial.print(fn, DEC);
   queueVoiceResponse(fn);
-  delay(300);
+  delay(350);
   fn = (sayHeading % 10);
   Serial.print("  Ones: ");
   Serial.println(fn, DEC);
   queueVoiceResponse(fn);
-  delay(350);
+  delay(100);
   queueVoiceResponse(38);                         //  Degrees
   delay(1000);
 }
