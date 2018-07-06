@@ -2010,12 +2010,70 @@ void mrBeep() {
     if ((currTime - timer) >= PLAYBACK_INT_MS) {
       timer = currTime;
 
+      // Get current location
       uint32_t currTime2 = millis();
       uint32_t elapsedTime = 0;
       char bleResp[50];
       int bleRespInd = 0;
+      // Get GPS coordinates from NAV server
+      int bytesWritten = bleCentral.println('o');
+      bleCentral.flush();
+      //Serial.print("bytesWritten = ");
+      Serial.println(bytesWritten);
+      do {
+        if (bleCentral.available()) {
+          if (bleRespInd < 49) {
+            bleResp[bleRespInd++] = bleCentral.read();
+          }
+          else {
+            bleCentral.read();
+          }
+        }
+        elapsedTime = millis() - currTime2;
+      } while (elapsedTime < BLE_WAIT_MS); // Wait for 200ms max
+      bleResp[bleRespInd] = '\0';
 
-      int bytesWritten = bleCentral.println('H');
+      while (bleCentral.available()) {
+        bleCentral.read();
+      }
+
+      //Serial.println(bleResp);
+      //Serial.print("3");
+
+      if (strlen(bleResp) < 45) {
+        //Serial.println(strlen(bleResp));
+        //Serial.println(bleResp);
+        bleErrCnt++;
+        return;
+      }
+      bleErrCnt = 0;
+      //Serial.print("4");
+
+      float latDeg = 0.0;
+      float lonDeg = 0.0;
+      parseGPSString(&bleResp[0], &latDeg, &lonDeg);
+      if ((latDeg!=0.0) && (lonDeg!=0.0) && (latDeg<90.0) && (latDeg>-90.0) && (lonDeg<180.0) && (lonDeg>-180.0)) {
+        // Valid
+        /*
+        Serial.print("GPS: ");
+        Serial.print(latDeg, 6);
+        Serial.print(",");
+        Serial.println(lonDeg, 6);
+        */
+        currWaypoint.gpsLatDeg = latDeg;
+        currWaypoint.gpsLonDeg = lonDeg;
+      }
+      else {
+        //Serial.println("Invalid GPS");
+        //return;
+      }
+
+      delay(100);
+      currTime2 = millis();
+      elapsedTime = 0;
+      bleRespInd = 0;
+      memset(bleResp, 0, 50);
+      bytesWritten = bleCentral.println('H');
       bleCentral.flush();
       //Serial.print("bytesWritten = ");
       //Serial.println(bytesWritten);
@@ -2158,6 +2216,8 @@ void recordWaypoint() {
       Serial.print("Waypoint: ");
       Serial.println(parsedCoord);
       Serial.println("Waypoint saved");
+      currWaypoint.gpsLonDeg = lonDeg;
+      currWaypoint.gpsLatDeg = latDeg;
     }
     else {
       Serial.println("Invalid waypoint");
@@ -2911,5 +2971,3 @@ void loop() {
 }
 //
 //
-
-
