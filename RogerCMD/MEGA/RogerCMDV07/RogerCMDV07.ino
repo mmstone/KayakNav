@@ -2957,7 +2957,7 @@ void setup() {
 //
 void loop() {
 //  testVRUCom();
-  //checkModem();
+  checkModem();
   sendLocationToFlow();
 //  testBLECom();
 //  testCellCom();
