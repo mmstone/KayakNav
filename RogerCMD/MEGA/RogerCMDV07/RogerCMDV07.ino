@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
-//  RogerCMDV07
+//  RogerCMDV07  (clone of V10)
 //
 //  Roger Command interfaces to the RogerCMD01 Navigational Subsystem via Bluetooth LE. Commands and Navigational data can
 //  be entered via one keypad:
@@ -677,7 +677,7 @@ void vruDistToDestError(float dtdError) {
   delay(100);
   queueVoiceResponse(107);                       //  Error
   delay(100);
-  if (dtdError < 100000.00) {                    //  Say the error if not over 100K meters
+  if (dtdError < 100000.00F) {                    //  Say the error if not over 100K meters
     vruSayDistToDest(dtdError);}
   delay(500);
 }
@@ -877,20 +877,6 @@ void batteryCheck() {
   measuredVbat *= 5;                           // Multiply by 5V, our reference voltage
   measuredVbat /= 1023;                        // convert to voltage
 }
-//
-//
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//
-void computeHeading() {
-  qHead = abs(qW * 180.00);
-  if ((qHead == 0.00) || (qHead == 180.00)) {
-    return;
-    }
-  if (heading > 180.00) {
-    qHead = (360.00 - qHead);
-    }
-}
-//
 //
 //
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1276,7 +1262,7 @@ void computeTripInfo() {
       // Check if waypoint reached
       if (distToWaypoint <= 10.0) {
         Serial.println("Waypoint reached.");
-
+        vruWayPointReached();
         // Check if playback complete
         if (totalWaypointsInd == totalWaypoints) {
           currPlaybackStep = COMPLETE;
@@ -1531,6 +1517,7 @@ void processNumInput(char num) {
       }
       else {
         // max valid entry is 99, error
+        vruFileEntryError();
         Serial.println("Error, max valid entry is 99");
       }
     }
@@ -1542,7 +1529,6 @@ void processNumInput(char num) {
           vruSayHeading();
           Serial.print("Current heading:");
           Serial.println(currHeading);
-          vruSayHeading();
           break;
         case '2': // distance to final waypoint
           distToDest = dist_between(currWaypoint.gpsLatDeg, currWaypoint.gpsLonDeg, finalWaypoint.gpsLatDeg, finalWaypoint.gpsLonDeg);
@@ -1631,6 +1617,7 @@ void processNumInput(char num) {
       vruManRecMode();                                       //  Starting Manual Recording
     }
     else {
+      vruInvalidModeEntry();
       Serial.println("Invalid mode, try again");
       numpadEntry = "";
     }
