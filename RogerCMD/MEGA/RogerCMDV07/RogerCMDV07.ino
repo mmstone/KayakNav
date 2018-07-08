@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
-//  RogerCMDV07
+//  RogerCMDV07  (clone of V10)
 //
 //  Roger Command interfaces to the RogerCMD01 Navigational Subsystem via Bluetooth LE. Commands and Navigational data can
 //  be entered via one keypad:
@@ -76,9 +76,9 @@ File playbackFile;
 //  global data/variables
 byte effect            = 109;          // effect requested by Ahmet
 char keyPadInput       = ' ';
-uint32_t timer         = 0;            // unsigned 32bit interger variable called timer assigned to the millisecond function
+uint32_t timer         = 0;     // unsigned 32bit interger variable called timer assigned to the millisecond function
 uint32_t timer2        = 0;
-//uint32_t tripRecSeq    = 0;          // used to sequence the record numbers in the log file
+//uint32_t tripRecSeq    = 0;            // used to sequence the record numbers in the log file
 uint16_t voiceRec      = 0;            // number being sent to VRU for voice playback
 uint8_t navHour        = 0;            // current UCT (GMT) hour data from GPS
 uint8_t navMinute      = 0;            // current minute data from GPS
@@ -267,9 +267,9 @@ void playAll() {
 void playRight() {
   tcaSelect(0);                                 // Right Side
   playBuzzer();
-  delay(300);
-  queueVoiceResponse(66);                       //   Right
   delay(200);
+  queueVoiceResponse(66);                       //   Right
+  delay(300);
   if (trace) {
     Serial.print("Right Effect #");
     Serial.println(effect);
@@ -453,7 +453,7 @@ void vruMainMenu() {
   delay(1500);
   queueVoiceResponse(193);                        //  Main Menu, Press A for Mr. Beep or Manual Recording, Press B for Auto Recording, Press C to play
                                                   //  back a trip file, press D to end current mode and return to the Main Menu
-  delay(8000);
+  delay(1000);
 }
 //
 //
@@ -677,7 +677,7 @@ void vruDistToDestError(float dtdError) {
   delay(100);
   queueVoiceResponse(107);                       //  Error
   delay(100);
-  if (dtdError < 100000.00) {                    //  Say the error if not over 100K meters
+  if (dtdError < 100000.00F) {                    //  Say the error if not over 100K meters
     vruSayDistToDest(dtdError);}
   delay(500);
 }
@@ -877,20 +877,6 @@ void batteryCheck() {
   measuredVbat *= 5;                           // Multiply by 5V, our reference voltage
   measuredVbat /= 1023;                        // convert to voltage
 }
-//
-//
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//
-void computeHeading() {
-  qHead = abs(qW * 180.00);
-  if ((qHead == 0.00) || (qHead == 180.00)) {
-    return;
-    }
-  if (heading > 180.00) {
-    qHead = (360.00 - qHead);
-    }
-}
-//
 //
 //
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1319,7 +1305,6 @@ void computeUserAction(float dist, float heading, float currHeading) {
       turnDirection = LEFT;
     }
   }
-  
   else {
     if (absHeadingDiff < 180.0) {
       // turn left
@@ -1555,7 +1540,7 @@ void processNumInput(char num) {
           else {
             Serial.println("Error in distance calculation");
             vruDistToDestError(distToDest);
-          }
+         }
           break;
         case '3': // Get speed from NAV GPS
           getSpeedKnots();
@@ -1734,7 +1719,7 @@ void processNumInput(char num) {
         if (strlen(bleResp) < 15) {
           bleErrCnt++;
           Serial.println("BLE error");
-          vruBluetoothError();
+
           return;
         }
         bleErrCnt = 0;
@@ -1894,7 +1879,7 @@ void confirmAction() {
       return;
     }
     bleErrCnt = 0;
-
+    
 //    mrBeepHeading = parseHeading(&bleResp[0]);
     mrBeepHeading = currHeading;  
     mrBeepHeadingSet = true;
@@ -1979,7 +1964,7 @@ void loadWaypointsFromFile() {
   }
 
   Serial.print(count);
-  Serial.println(" waypoints loaded");
+  Serial.println(" wayloads loaded");
   if (seqNum == totalWaypoints) {
     playbackFile.close();
   }
@@ -2122,12 +2107,70 @@ void mrBeep() {
     if ((currTime - timer) >= PLAYBACK_INT_MS) {
       timer = currTime;
 
+      // Get current location
       uint32_t currTime2 = millis();
       uint32_t elapsedTime = 0;
       char bleResp[50];
       int bleRespInd = 0;
+      // Get GPS coordinates from NAV server
+      int bytesWritten = bleCentral.println('o');
+      bleCentral.flush();
+      //Serial.print("bytesWritten = ");
+      Serial.println(bytesWritten);
+      do {
+        if (bleCentral.available()) {
+          if (bleRespInd < 49) {
+            bleResp[bleRespInd++] = bleCentral.read();
+          }
+          else {
+            bleCentral.read();
+          }
+        }
+        elapsedTime = millis() - currTime2;
+      } while (elapsedTime < BLE_WAIT_MS); // Wait for 200ms max
+      bleResp[bleRespInd] = '\0';
 
-      int bytesWritten = bleCentral.println('H');
+      while (bleCentral.available()) {
+        bleCentral.read();
+      }
+
+      //Serial.println(bleResp);
+      //Serial.print("3");
+
+      if (strlen(bleResp) < 45) {
+        //Serial.println(strlen(bleResp));
+        //Serial.println(bleResp);
+        bleErrCnt++;
+        return;
+      }
+      bleErrCnt = 0;
+      //Serial.print("4");
+
+      float latDeg = 0.0;
+      float lonDeg = 0.0;
+      parseGPSString(&bleResp[0], &latDeg, &lonDeg);
+      if ((latDeg!=0.0) && (lonDeg!=0.0) && (latDeg<90.0) && (latDeg>-90.0) && (lonDeg<180.0) && (lonDeg>-180.0)) {
+        // Valid
+        /*
+        Serial.print("GPS: ");
+        Serial.print(latDeg, 6);
+        Serial.print(",");
+        Serial.println(lonDeg, 6);
+        */
+        currWaypoint.gpsLatDeg = latDeg;
+        currWaypoint.gpsLonDeg = lonDeg;
+      }
+      else {
+        //Serial.println("Invalid GPS");
+        //return;
+      }
+
+      delay(100);
+      currTime2 = millis();
+      elapsedTime = 0;
+      bleRespInd = 0;
+      memset(bleResp, 0, 50);
+      bytesWritten = bleCentral.println('H');
       bleCentral.flush();
       //Serial.print("bytesWritten = ");
       //Serial.println(bytesWritten);
@@ -2270,6 +2313,8 @@ void recordWaypoint() {
       Serial.print("Waypoint: ");
       Serial.println(parsedCoord);
       Serial.println("Waypoint saved");
+      currWaypoint.gpsLonDeg = lonDeg;
+      currWaypoint.gpsLatDeg = latDeg;
     }
     else {
       Serial.println("Invalid waypoint");
@@ -2979,7 +3024,7 @@ void chkHapticDrv() {
 //
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
-void setup() {
+ void setup() {
   configSerialPorts();               // initialize serial:
   configIOPins();                    // configure the IO pins
   delay(5000);
@@ -3019,5 +3064,3 @@ void loop() {
 }
 //
 //
-
-
