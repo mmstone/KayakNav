@@ -3308,7 +3308,7 @@ void chkForLowBattery() {
 void chkMainBattery() {
   mainVolt = analogRead(LOWBATPIN);
   delay(50);
-  if (mainVolt <= 360) {                      //  Had been 60 on the other lab systems and 440 previously on Ahmet's system
+  if (mainVolt <= 50) {                      //  Had been 60 on the other lab systems and 440 previously on Ahmet's system
     mainBatteryLow = true;
   } else {
     mainBatteryLow = false;
