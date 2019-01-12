@@ -1766,6 +1766,7 @@ void processNumInput(char num) {
       currMode = MANUAL_REC;
       sdCardOpenNext();
       vruManRecMode();                                       //  Starting Manual Recording
+      recordWaypoint();
     }
     else {
       vruInvalidModeEntry();
