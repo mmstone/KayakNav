@@ -312,12 +312,22 @@ void sdDeleteTripFile() {
       queueVoiceResponse(204);                        //  Trip File Number Entered is Invalid
       delay(550);
     } else {
-      delay(350);
-      queueVoiceResponse(216);                        //  Deleted
-      delay(550);
       strcpy(filename, delFilename.c_str());
-      vruSayFileNumber();                             //  Trip file number is #
-      Serial.print("Deleted: ");
+      delay(750);
+      queueVoiceResponse(215);                        //  Trip File
+      delay(1750);
+      uint8_t fn = (filename[5] - 48);                //  Number
+      queueVoiceResponse(fn);
+      delay(450);
+      fn = (filename[6] - 48);
+      queueVoiceResponse(fn);
+      delay(450);
+      fn = (filename[7] - 48);
+      queueVoiceResponse(fn);
+      delay(450);
+      queueVoiceResponse(216);                        //  Deleted
+      delay(200);
+      Serial.print("Trip File Deleted: ");
       Serial.println(filename);
       }
   currPlaybackStep = CHOOSE_STEP;
@@ -346,7 +356,7 @@ void turnRight() {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 void turnLeft() {
-  delay(550);
+  delay(500);
   queueVoiceResponse(67);                        //  Left
   delay(150);
   if (trace) {
